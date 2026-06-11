@@ -14,6 +14,20 @@ const STORAGE_KEY = 'gp_config'
 const AUTH_KEY = 'gp_password_hash'
 const SESSION_KEY = 'gp_session'
 
+// Credentials baked in at build time from Railway env vars (permanent across all browsers)
+const ENV_CONFIG: Config | null =
+  import.meta.env.VITE_GP_TOKEN
+    ? {
+        token: import.meta.env.VITE_GP_TOKEN as string,
+        id_usuario: import.meta.env.VITE_GP_USER_ID as string,
+        id_projeto: import.meta.env.VITE_GP_PROJECT_ID as string,
+        cacheTtlMinutes: 10,
+      }
+    : null
+
+// Password stored as plain text env var (VITE_GP_PASSWORD) or as SHA-256 hash in localStorage
+const ENV_PASSWORD: string = (import.meta.env.VITE_GP_PASSWORD as string) ?? ''
+
 type Tab = 'overview' | 'campaigns'
 
 function loadConfig(): Config | null {
@@ -26,7 +40,10 @@ function loadConfig(): Config | null {
 }
 
 export default function App() {
-  const [config, setConfig] = useState<Config | null>(loadConfig)
+  // In env-var mode the config is always available; otherwise use localStorage
+  const [localConfig, setLocalConfig] = useState<Config | null>(loadConfig)
+  const config = ENV_CONFIG ?? localConfig
+
   const [passwordHash, setPasswordHash] = useState<string | null>(() => localStorage.getItem(AUTH_KEY))
   const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1')
   const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -39,7 +56,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(c))
     localStorage.setItem(AUTH_KEY, hash)
     sessionStorage.setItem(SESSION_KEY, '1')
-    setConfig(c)
+    setLocalConfig(c)
     setPasswordHash(hash)
     setAuthenticated(true)
   }
@@ -59,17 +76,24 @@ export default function App() {
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(AUTH_KEY)
     sessionStorage.removeItem(SESSION_KEY)
-    setConfig(null)
+    setLocalConfig(null)
     setPasswordHash(null)
     setAuthenticated(false)
   }
 
-  if (!passwordHash) {
-    return <ConfigScreen existingConfig={config} onSave={handleFirstSetup} />
-  }
-
-  if (!authenticated) {
-    return <LoginScreen storedHash={passwordHash} onLogin={handleLogin} onReset={handleReset} />
+  // Env-var mode: config is always available, use plain-text password comparison
+  if (ENV_CONFIG) {
+    if (!authenticated) {
+      return <LoginScreen envPassword={ENV_PASSWORD} onLogin={handleLogin} />
+    }
+  } else {
+    // Local/fallback mode: credentials + password stored in localStorage
+    if (!passwordHash) {
+      return <ConfigScreen existingConfig={localConfig} onSave={handleFirstSetup} />
+    }
+    if (!authenticated) {
+      return <LoginScreen storedHash={passwordHash} onLogin={handleLogin} onReset={handleReset} />
+    }
   }
 
   // Aggregate totals

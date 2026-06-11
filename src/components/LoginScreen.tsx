@@ -3,12 +3,15 @@ import { Lock } from 'lucide-react'
 import { hashPassword } from '../utils/hash'
 
 interface Props {
-  storedHash: string
+  // Env-var mode: compare plain text
+  envPassword?: string
+  // localStorage mode: compare SHA-256 hash
+  storedHash?: string
   onLogin: () => void
-  onReset: () => void
+  onReset?: () => void
 }
 
-export default function LoginScreen({ storedHash, onLogin, onReset }: Props) {
+export default function LoginScreen({ envPassword, storedHash, onLogin, onReset }: Props) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,8 +20,16 @@ export default function LoginScreen({ storedHash, onLogin, onReset }: Props) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const hash = await hashPassword(password)
-    if (hash === storedHash) {
+
+    let correct = false
+    if (envPassword !== undefined) {
+      correct = password === envPassword
+    } else if (storedHash) {
+      const hash = await hashPassword(password)
+      correct = hash === storedHash
+    }
+
+    if (correct) {
       onLogin()
     } else {
       setError('Senha incorreta')
@@ -64,12 +75,14 @@ export default function LoginScreen({ storedHash, onLogin, onReset }: Props) {
           </button>
         </form>
 
-        <button
-          onClick={onReset}
-          className="mt-6 w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          Redefinir acesso
-        </button>
+        {onReset && (
+          <button
+            onClick={onReset}
+            className="mt-6 w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Redefinir acesso
+          </button>
+        )}
       </div>
     </div>
   )
