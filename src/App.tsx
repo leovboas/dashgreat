@@ -8,6 +8,7 @@ import MetricCard from './components/MetricCard'
 import PageRow from './components/PageRow'
 import SummaryChart from './components/SummaryChart'
 import CampaignsSection from './components/campaigns/CampaignsSection'
+import ConversionsSection from './components/conversions/ConversionsSection'
 import { clearAllCache } from './api/cache'
 
 const STORAGE_KEY = 'gp_config'
@@ -28,7 +29,7 @@ const ENV_CONFIG: Config | null =
 // Password stored as plain text env var (VITE_GP_PASSWORD) or as SHA-256 hash in localStorage
 const ENV_PASSWORD: string = (import.meta.env.VITE_GP_PASSWORD as string) ?? ''
 
-type Tab = 'overview' | 'campaigns'
+type Tab = 'overview' | 'campaigns' | 'conversions'
 
 function loadConfig(): Config | null {
   try {
@@ -46,7 +47,7 @@ export default function App() {
 
   const [passwordHash, setPasswordHash] = useState<string | null>(() => localStorage.getItem(AUTH_KEY))
   const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1')
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const [activeTab, setActiveTab] = useState<Tab>('conversions')
   const { pages, loading, error, cacheAgeSeconds, lastRefreshed, refresh } = useDashboard(
     config && authenticated ? config : null,
   )
@@ -126,12 +127,8 @@ export default function App() {
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 text-white rounded-xl p-1.5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
-              </svg>
-            </div>
-            <span className="font-bold text-gray-800 text-lg">GreatPages Dashboard</span>
+            <img src="/berry-logo.png" alt="Berry" className="h-8 w-auto object-contain" />
+            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Controle Geral Performance Berry - Consultoria</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -166,6 +163,9 @@ export default function App() {
         {/* Tab bar */}
         {pages.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 border-t border-gray-100">
+            <TabButton active={activeTab === 'conversions'} onClick={() => setActiveTab('conversions')}>
+              Conversões
+            </TabButton>
             <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>
               Visão Geral
             </TabButton>
@@ -243,6 +243,9 @@ export default function App() {
                 </div>
               </>
             )}
+
+            {/* ── Conversões ── */}
+            {activeTab === 'conversions' && <ConversionsSection pages={pages} />}
 
             {/* ── Origem & Campanhas ── */}
             {activeTab === 'campaigns' && (
