@@ -1,27 +1,42 @@
 import { useState } from 'react'
 import { Settings2 } from 'lucide-react'
 import type { Config } from '../types/greatpages'
+import { hashPassword } from '../utils/hash'
 
 interface Props {
-  initial: Config | null
-  onSave: (config: Config) => void
+  onSave: (config: Config, passwordHash: string) => void
 }
 
-export default function ConfigScreen({ initial, onSave }: Props) {
-  const [form, setForm] = useState<Config>(
-    initial ?? {
-      token: '',
-      id_usuario: '',
-      id_projeto: '',
-      cacheTtlMinutes: 10,
-    },
-  )
+export default function ConfigScreen({ onSave }: Props) {
+  const [form, setForm] = useState<Config>({
+    token: '',
+    id_usuario: '',
+    id_projeto: '',
+    cacheTtlMinutes: 10,
+  })
+  const [password, setPassword] = useState('')
+  const [confirmPwd, setConfirmPwd] = useState('')
+  const [pwdError, setPwdError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.token || !form.id_usuario || !form.id_projeto) return
-    onSave(form)
+    setPwdError('')
+    if (password.length < 4) {
+      setPwdError('A senha deve ter ao menos 4 caracteres')
+      return
+    }
+    if (password !== confirmPwd) {
+      setPwdError('As senhas não coincidem')
+      return
+    }
+    setSubmitting(true)
+    const hash = await hashPassword(password)
+    onSave(form, hash)
   }
+
+  const canSubmit = !!(form.token && form.id_usuario && form.id_projeto && password && confirmPwd)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -57,29 +72,35 @@ export default function ConfigScreen({ initial, onSave }: Props) {
             onChange={(v) => setForm((f) => ({ ...f, id_projeto: v }))}
           />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-600">
-              Cache TTL: <span className="font-bold text-blue-600">{form.cacheTtlMinutes} min</span>
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={60}
-              value={form.cacheTtlMinutes}
-              onChange={(e) => setForm((f) => ({ ...f, cacheTtlMinutes: Number(e.target.value) }))}
-              className="accent-blue-600"
-            />
-            <p className="text-xs text-gray-400">
-              Os dados serão buscados da API apenas quando o cache expirar.
+          <div className="border-t border-gray-100 pt-3 mt-1">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Senha de acesso
             </p>
+            <div className="flex flex-col gap-3">
+              <Field
+                label="Senha"
+                placeholder="Mínimo 4 caracteres"
+                value={password}
+                type="password"
+                onChange={(v) => { setPassword(v); setPwdError('') }}
+              />
+              <Field
+                label="Confirmar senha"
+                placeholder="Repita a senha"
+                value={confirmPwd}
+                type="password"
+                onChange={(v) => { setConfirmPwd(v); setPwdError('') }}
+              />
+              {pwdError && <p className="text-sm text-red-500 -mt-1">{pwdError}</p>}
+            </div>
           </div>
 
           <button
             type="submit"
-            disabled={!form.token || !form.id_usuario || !form.id_projeto}
+            disabled={!canSubmit || submitting}
             className="mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            Acessar Dashboard
+            {submitting ? 'Salvando...' : 'Configurar e Acessar'}
           </button>
         </form>
       </div>

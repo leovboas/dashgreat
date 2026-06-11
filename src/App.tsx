@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
-import { RefreshCw, Settings2, LogOut, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { RefreshCw, LogOut, Clock, AlertCircle, Loader2 } from 'lucide-react'
 import type { Config } from './types/greatpages'
 import { useDashboard } from './hooks/useDashboard'
 import ConfigScreen from './components/ConfigScreen'
+import LoginScreen from './components/LoginScreen'
 import MetricCard from './components/MetricCard'
 import PageRow from './components/PageRow'
 import SummaryChart from './components/SummaryChart'
@@ -10,6 +11,8 @@ import CampaignsSection from './components/campaigns/CampaignsSection'
 import { clearAllCache } from './api/cache'
 
 const STORAGE_KEY = 'gp_config'
+const AUTH_KEY = 'gp_password_hash'
+const SESSION_KEY = 'gp_session'
 
 type Tab = 'overview' | 'campaigns'
 
@@ -22,34 +25,51 @@ function loadConfig(): Config | null {
   }
 }
 
-function saveConfig(config: Config) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
-}
-
 export default function App() {
   const [config, setConfig] = useState<Config | null>(loadConfig)
-  const [showConfig, setShowConfig] = useState(false)
+  const [passwordHash, setPasswordHash] = useState<string | null>(() => localStorage.getItem(AUTH_KEY))
+  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1')
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const { pages, loading, error, cacheAgeSeconds, lastRefreshed, refresh } = useDashboard(config)
+  const { pages, loading, error, cacheAgeSeconds, lastRefreshed, refresh } = useDashboard(
+    config && authenticated ? config : null,
+  )
 
-  useEffect(() => {
-    if (config) saveConfig(config)
-  }, [config])
-
-  function handleSaveConfig(c: Config) {
+  function handleFirstSetup(c: Config, hash: string) {
     clearAllCache()
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(c))
+    localStorage.setItem(AUTH_KEY, hash)
+    sessionStorage.setItem(SESSION_KEY, '1')
     setConfig(c)
-    setShowConfig(false)
+    setPasswordHash(hash)
+    setAuthenticated(true)
+  }
+
+  function handleLogin() {
+    sessionStorage.setItem(SESSION_KEY, '1')
+    setAuthenticated(true)
   }
 
   function handleLogout() {
-    clearAllCache()
-    localStorage.removeItem(STORAGE_KEY)
-    setConfig(null)
+    sessionStorage.removeItem(SESSION_KEY)
+    setAuthenticated(false)
   }
 
-  if (!config || showConfig) {
-    return <ConfigScreen initial={config} onSave={handleSaveConfig} />
+  function handleReset() {
+    clearAllCache()
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(AUTH_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
+    setConfig(null)
+    setPasswordHash(null)
+    setAuthenticated(false)
+  }
+
+  if (!config || !passwordHash) {
+    return <ConfigScreen onSave={handleFirstSetup} />
+  }
+
+  if (!authenticated) {
+    return <LoginScreen storedHash={passwordHash} onLogin={handleLogin} onReset={handleReset} />
   }
 
   // Aggregate totals
@@ -108,13 +128,6 @@ export default function App() {
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Atualizar</span>
-            </button>
-            <button
-              onClick={() => setShowConfig(true)}
-              className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Configurações"
-            >
-              <Settings2 size={16} />
             </button>
             <button
               onClick={handleLogout}
