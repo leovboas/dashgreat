@@ -4,24 +4,26 @@ import type { Config } from '../types/greatpages'
 import { hashPassword } from '../utils/hash'
 
 interface Props {
+  existingConfig: Config | null
   onSave: (config: Config, passwordHash: string) => void
 }
 
-export default function ConfigScreen({ onSave }: Props) {
-  const [form, setForm] = useState<Config>({
-    token: '',
-    id_usuario: '',
-    id_projeto: '',
-    cacheTtlMinutes: 10,
-  })
+export default function ConfigScreen({ existingConfig, onSave }: Props) {
+  const [form, setForm] = useState<Config>(
+    existingConfig ?? { token: '', id_usuario: '', id_projeto: '', cacheTtlMinutes: 10 },
+  )
   const [password, setPassword] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
   const [pwdError, setPwdError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const credentialsReady = existingConfig
+    ? true
+    : !!(form.token && form.id_usuario && form.id_projeto)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.token || !form.id_usuario || !form.id_projeto) return
+    if (!credentialsReady) return
     setPwdError('')
     if (password.length < 4) {
       setPwdError('A senha deve ter ao menos 4 caracteres')
@@ -36,7 +38,7 @@ export default function ConfigScreen({ onSave }: Props) {
     onSave(form, hash)
   }
 
-  const canSubmit = !!(form.token && form.id_usuario && form.id_projeto && password && confirmPwd)
+  const canSubmit = credentialsReady && !!(password && confirmPwd)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -47,32 +49,38 @@ export default function ConfigScreen({ onSave }: Props) {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-800">GreatPages Dashboard</h1>
-            <p className="text-sm text-gray-400">Configure suas credenciais de acesso</p>
+            <p className="text-sm text-gray-400">
+              {existingConfig ? 'Defina uma senha de acesso' : 'Configure suas credenciais de acesso'}
+            </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Field
-            label="Token da API"
-            placeholder="Seu X-GreatPages-Token"
-            value={form.token}
-            type="password"
-            onChange={(v) => setForm((f) => ({ ...f, token: v }))}
-          />
-          <Field
-            label="ID do Usuário"
-            placeholder="id_usuario"
-            value={form.id_usuario}
-            onChange={(v) => setForm((f) => ({ ...f, id_usuario: v }))}
-          />
-          <Field
-            label="ID do Projeto"
-            placeholder="id_projeto"
-            value={form.id_projeto}
-            onChange={(v) => setForm((f) => ({ ...f, id_projeto: v }))}
-          />
+          {!existingConfig && (
+            <>
+              <Field
+                label="Token da API"
+                placeholder="Seu X-GreatPages-Token"
+                value={form.token}
+                type="password"
+                onChange={(v) => setForm((f) => ({ ...f, token: v }))}
+              />
+              <Field
+                label="ID do Usuário"
+                placeholder="id_usuario"
+                value={form.id_usuario}
+                onChange={(v) => setForm((f) => ({ ...f, id_usuario: v }))}
+              />
+              <Field
+                label="ID do Projeto"
+                placeholder="id_projeto"
+                value={form.id_projeto}
+                onChange={(v) => setForm((f) => ({ ...f, id_projeto: v }))}
+              />
+            </>
+          )}
 
-          <div className="border-t border-gray-100 pt-3 mt-1">
+          <div className={existingConfig ? '' : 'border-t border-gray-100 pt-3 mt-1'}>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Senha de acesso
             </p>

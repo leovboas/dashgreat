@@ -64,8 +64,8 @@ export default function App() {
     setAuthenticated(false)
   }
 
-  if (!config || !passwordHash) {
-    return <ConfigScreen onSave={handleFirstSetup} />
+  if (!passwordHash) {
+    return <ConfigScreen existingConfig={config} onSave={handleFirstSetup} />
   }
 
   if (!authenticated) {
