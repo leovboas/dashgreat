@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import type { FunnelCounts } from '../../hooks/useConversionsData'
+import type { ChannelMetrics } from '../../utils/computeMetrics'
 
 function fmt(n: number) {
   return n.toLocaleString('pt-BR')
@@ -34,6 +36,7 @@ interface Props {
   cpa: number | null
   pacingDeveria?: number | null
   pacingBudget?: number
+  byChannel?: ChannelMetrics[]
   /** Windsor + Supabase still loading */
   loading?: boolean
   /** GreatPages leads still loading */
@@ -42,9 +45,10 @@ interface Props {
 
 export default function KPICards({
   totalSpend, totalLeads, funnel, totalMRR, cpl, cpa,
-  pacingDeveria, pacingBudget,
+  pacingDeveria, pacingBudget, byChannel = [],
   loading = false, loadingLeads = false,
 }: Props) {
+  const [metaTooltip, setMetaTooltip] = useState(false)
   const ticketMedio = funnel.won > 0 ? totalMRR / funnel.won : null
   const ritmo = pacingDeveria && pacingDeveria > 0 ? (totalSpend / pacingDeveria) * 100 : null
 
@@ -62,26 +66,67 @@ export default function KPICards({
       {/* Row 1: Financial KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* Investimento with pacing */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Investimento Total</span>
-          {loading ? <Skeleton wide /> : (
-            <span className="text-2xl font-bold text-[#1a1a1a]">{fmtBRL(totalSpend)}</span>
-          )}
-          {!loading && (pacingBudget && pacingBudget > 0 && pacingDeveria != null ? (
-            <div className="flex flex-col gap-0.5 mt-0.5">
-              <span className="text-xs text-gray-400">
-                Deveríamos: <span className="font-medium text-gray-600">{fmtBRL(pacingDeveria)}</span>
-              </span>
-              {ritmo !== null && (
-                <span className={`text-xs font-semibold ${pacingColor(ritmo)}`}>
-                  Ritmo: {ritmo.toFixed(1)}%
-                </span>
+        {(() => {
+          const metaSpend = byChannel.find((c) => c.channel === 'Meta')?.spend ?? 0
+          const googleSpend = byChannel.find((c) => c.channel === 'Google')?.spend ?? 0
+          const metaTax = metaSpend * 0.14
+          return (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Investimento Total</span>
+              {loading ? <Skeleton wide /> : (
+                <span className="text-2xl font-bold text-[#1a1a1a]">{fmtBRL(totalSpend)}</span>
+              )}
+              {!loading && (
+                <>
+                  {/* Channel breakdown */}
+                  <div className="flex flex-col gap-0.5 mt-1 border-t border-gray-50 pt-1.5">
+                    {/* Google */}
+                    {googleSpend > 0 && (
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs text-gray-400">Google Ads</span>
+                        <span className="text-xs font-medium text-gray-700">{fmtBRL(googleSpend)}</span>
+                      </div>
+                    )}
+                    {/* Meta with tooltip */}
+                    {metaSpend > 0 && (
+                      <div className="relative">
+                        <div
+                          className="flex items-center justify-between gap-1 cursor-help"
+                          onMouseEnter={() => setMetaTooltip(true)}
+                          onMouseLeave={() => setMetaTooltip(false)}
+                        >
+                          <span className="text-xs text-gray-400 underline decoration-dotted decoration-gray-300">Meta Ads</span>
+                          <span className="text-xs font-medium text-gray-700">{fmtBRL(metaSpend)}</span>
+                        </div>
+                        {metaTooltip && (
+                          <div className="absolute bottom-full left-0 mb-1.5 z-20 bg-gray-800 text-white text-xs rounded-lg px-2.5 py-2 shadow-lg whitespace-nowrap">
+                            <p className="font-medium mb-0.5">Imposto estimado (14%)</p>
+                            <p className="text-gray-300">{fmtBRL(metaTax)} sobre {fmtBRL(metaSpend)}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {/* Pacing */}
+                  {pacingBudget && pacingBudget > 0 && pacingDeveria != null ? (
+                    <div className="flex flex-col gap-0.5 mt-0.5">
+                      <span className="text-xs text-gray-400">
+                        Deveríamos: <span className="font-medium text-gray-600">{fmtBRL(pacingDeveria)}</span>
+                      </span>
+                      {ritmo !== null && (
+                        <span className={`text-xs font-semibold ${pacingColor(ritmo)}`}>
+                          Ritmo: {ritmo.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-300">Configure verba no Pacing ↓</span>
+                  )}
+                </>
               )}
             </div>
-          ) : (
-            <span className="text-xs text-gray-300">Configure verba no Pacing ↓</span>
-          ))}
-        </div>
+          )
+        })()}
 
         {/* CPA */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">

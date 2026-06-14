@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react'
-import { Settings2 } from 'lucide-react'
+import { Settings2, Loader2 } from 'lucide-react'
 import { CHANNELS, type Channel } from '../../utils/channelNorm'
 import type { ChannelMetrics } from '../../hooks/useConversionsData'
+import { loadRemoteSetting, saveRemoteSetting } from '../../api/supabase'
 
 const STORAGE_KEY = 'gp_budget_config'
+const REMOTE_KEY = 'budget_config'
 
 type BudgetMap = Record<Channel, number>
 
-function loadBudgets(): BudgetMap {
+function emptyBudgets(): BudgetMap {
+  return Object.fromEntries(CHANNELS.map((c) => [c, 0])) as BudgetMap
+}
+
+function loadLocalBudgets(): BudgetMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : Object.fromEntries(CHANNELS.map((c) => [c, 0]))
+    return raw ? JSON.parse(raw) : emptyBudgets()
   } catch {
-    return Object.fromEntries(CHANNELS.map((c) => [c, 0])) as BudgetMap
+    return emptyBudgets()
   }
 }
 
@@ -55,20 +61,34 @@ interface Props {
 }
 
 export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
-  const [budgets, setBudgets] = useState<BudgetMap>(loadBudgets)
+  const [budgets, setBudgets] = useState<BudgetMap>(loadLocalBudgets)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState<BudgetMap>(loadBudgets)
+  const [draft, setDraft] = useState<BudgetMap>(loadLocalBudgets)
+  const [syncing, setSyncing] = useState(false)
 
+  // On mount: load from Supabase, fallback to localStorage
   useEffect(() => {
-    const b = loadBudgets()
-    setBudgets(b)
-    setDraft(b)
+    loadRemoteSetting<BudgetMap>(REMOTE_KEY).then((remote) => {
+      if (remote) {
+        const merged = { ...emptyBudgets(), ...remote }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+        setBudgets(merged)
+        setDraft(merged)
+      } else {
+        const local = loadLocalBudgets()
+        setBudgets(local)
+        setDraft(local)
+      }
+    })
   }, [])
 
-  function saveBudgets() {
+  async function saveBudgets() {
+    setSyncing(true)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
     setBudgets(draft)
     setEditing(false)
+    await saveRemoteSetting(REMOTE_KEY, draft)
+    setSyncing(false)
   }
 
   const { elapsed, total } = pacingDays(dateFrom, dateTo)
@@ -120,9 +140,11 @@ export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
           </div>
           <button
             onClick={saveBudgets}
-            className="mt-3 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={syncing}
+            className="mt-3 flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
           >
-            Salvar verbas
+            {syncing && <Loader2 size={11} className="animate-spin" />}
+            {syncing ? 'Salvando...' : 'Salvar verbas'}
           </button>
         </div>
       )}

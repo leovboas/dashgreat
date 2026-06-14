@@ -93,3 +93,47 @@ export function invalidateSupabaseCache(dateFrom: string, dateTo: string) {
   memCache.delete(key)
   import('./cache').then(({ clearCacheByKey }) => clearCacheByKey(key))
 }
+
+// ── Settings (budget config sync) ──
+
+function getSupabaseBase() {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  return { url, key }
+}
+
+export async function loadRemoteSetting<T>(settingKey: string): Promise<T | null> {
+  const sb = getSupabaseBase()
+  if (!sb) return null
+  try {
+    const res = await fetch(
+      `${sb.url}/rest/v1/settings?key=eq.${encodeURIComponent(settingKey)}&select=value`,
+      { headers: { apikey: sb.key, Authorization: `Bearer ${sb.key}` } },
+    )
+    if (!res.ok) return null
+    const rows: Array<{ value: T }> = await res.json()
+    return rows[0]?.value ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function saveRemoteSetting<T>(settingKey: string, value: T): Promise<void> {
+  const sb = getSupabaseBase()
+  if (!sb) return
+  try {
+    await fetch(`${sb.url}/rest/v1/settings`, {
+      method: 'POST',
+      headers: {
+        apikey: sb.key,
+        Authorization: `Bearer ${sb.key}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ key: settingKey, value, updated_at: new Date().toISOString() }),
+    })
+  } catch {
+    // silently fail — local save already done
+  }
+}
