@@ -63,14 +63,14 @@ interface Props {
 
 export default function ChannelTable({ byChannel, activeChannels }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('spend')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortKey(key)
-      setSortDir('asc')
+      setSortDir('desc')
     }
   }
 

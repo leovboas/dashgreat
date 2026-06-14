@@ -61,7 +61,7 @@ interface Props {
 
 export default function AdTable({ byAd }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('spend')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   if (byAd.length === 0) return null
 
@@ -70,7 +70,7 @@ export default function AdTable({ byAd }: Props) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortKey(key)
-      setSortDir('asc')
+      setSortDir('desc')
     }
   }
 
@@ -94,10 +94,17 @@ export default function AdTable({ byAd }: Props) {
   )
 
   function Row({ r, isTotal = false }: { r: AdMetrics; isTotal?: boolean }) {
+    const MAX_LEN = 40
+    const truncated = r.ad.length > MAX_LEN ? r.ad.slice(0, MAX_LEN) + '…' : r.ad
     return (
       <tr className={isTotal ? 'bg-gray-50 font-semibold border-t-2 border-gray-200' : 'hover:bg-gray-50'}>
-        <td className="px-3 py-2.5 whitespace-nowrap">
-          <span className={isTotal ? 'text-gray-800' : 'text-gray-700'}>{r.ad}</span>
+        <td className="px-3 py-2.5 max-w-[220px]">
+          <span
+            className={`block truncate ${isTotal ? 'text-gray-800' : 'text-gray-700'}`}
+            title={r.ad.length > MAX_LEN ? r.ad : undefined}
+          >
+            {isTotal ? r.ad : truncated}
+          </span>
         </td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(r.spend)}</td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtN(r.mqls)}</td>

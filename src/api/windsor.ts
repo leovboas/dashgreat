@@ -1,3 +1,5 @@
+import { getCacheEntry, setCacheEntry } from './cache'
+
 export interface WindsorRow {
   date: string
   datasource: string
@@ -10,19 +12,20 @@ export interface WindsorRow {
 }
 
 const WINDSOR_FIELDS = ['date', 'datasource', 'source', 'campaign', 'adset_name', 'ad_name', 'spend', 'clicks']
+const CACHE_TTL_MINUTES = 30
+
+// In-memory session cache — instant re-access without localStorage parse
+const memCache = new Map<string, WindsorRow[]>()
 
 function parseResponse(text: string): WindsorRow[] {
   text = text.trim()
   if (!text) return []
   try {
     const parsed = JSON.parse(text)
-    // { "data": [...] } wrapper
     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.data)) return parsed.data
-    // Plain array
     if (Array.isArray(parsed)) return parsed
     return []
   } catch {
-    // NDJSON fallback (one JSON object per line)
     try {
       return text.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l))
     } catch {
@@ -35,14 +38,25 @@ export async function fetchWindsorData(dateFrom: string, dateTo: string): Promis
   const apiKey = import.meta.env.VITE_WINDSOR_API_KEY
   if (!apiKey) return []
 
+  const cacheKey = `windsor_${dateFrom}_${dateTo}`
+
+  // 1. In-memory hit (fastest)
+  if (memCache.has(cacheKey)) return memCache.get(cacheKey)!
+
+  // 2. localStorage hit
+  const stored = getCacheEntry<WindsorRow[]>(cacheKey)
+  if (stored) {
+    memCache.set(cacheKey, stored)
+    return stored
+  }
+
+  // 3. Network fetch
   const params = new URLSearchParams({
     api_key: apiKey,
     date_from: dateFrom,
     date_to: dateTo,
     fields: WINDSOR_FIELDS.join(','),
   })
-
-  // Windsor uses `select_accounts`, not `account_ids`
   const accountIds = import.meta.env.VITE_WINDSOR_ACCOUNT_IDS
   if (accountIds?.trim()) params.set('select_accounts', accountIds.trim())
 
@@ -51,6 +65,16 @@ export async function fetchWindsorData(dateFrom: string, dateTo: string): Promis
     const body = await res.text()
     throw new Error(`Windsor API ${res.status}: ${body.slice(0, 200)}`)
   }
-  const text = await res.text()
-  return parseResponse(text)
+  const rows = parseResponse(await res.text())
+
+  setCacheEntry(cacheKey, rows, CACHE_TTL_MINUTES)
+  memCache.set(cacheKey, rows)
+  return rows
+}
+
+export function invalidateWindsorCache(dateFrom: string, dateTo: string) {
+  const key = `windsor_${dateFrom}_${dateTo}`
+  memCache.delete(key)
+  // localStorage entry will be cleared on next getCacheEntry via TTL or manually
+  import('./cache').then(({ clearCacheByKey }) => clearCacheByKey(key))
 }

@@ -103,15 +103,33 @@ function evtCodes(ev: SupabaseEvent) {
   return parseCampaign(utmCampaign)
 }
 
-/** Extract campaign code from a Windsor field value (campaign/adset/ad name) */
+/** Extract campaign code (e.g. "F186") from a Windsor name field which may contain it embedded */
+function extractCampaignCode(name: string): string {
+  if (!name) return ''
+  const m = name.match(/\b([A-Za-z]+\d+)\b/)
+  return m ? m[1]! : ''
+}
+
+/** Extract adset code (e.g. "F186C2") from a Windsor adset name */
+function extractAdSetCode(name: string): string {
+  if (!name) return ''
+  const m = name.match(/([A-Za-z]+\d+C\d+)/i)
+  return m ? m[1]! : extractCampaignCode(name)
+}
+
+/** Extract ad code (e.g. "F186C2AD5") from a Windsor ad name */
+function extractAdCode(name: string): string {
+  if (!name) return ''
+  const m = name.match(/([A-Za-z]+\d+C\d+AD\d+)/i)
+  return m ? m[1]! : extractAdSetCode(name)
+}
+
+/** Extract campaign/adSet/ad codes from a Windsor row */
 function wCodes(row: WindsorRow) {
-  const c = parseCampaign(row.campaign ?? '')
-  const a = parseCampaign(row.adset_name ?? '')
-  const ad = parseCampaign(row.ad_name ?? '')
   return {
-    campaign: c.campaign,
-    adSet: a.adSet !== a.campaign ? a.adSet : c.adSet,
-    ad: ad.ad !== ad.adSet ? ad.ad : a.ad,
+    campaign: extractCampaignCode(row.campaign ?? ''),
+    adSet: extractAdSetCode(row.adset_name ?? ''),
+    ad: extractAdCode(row.ad_name ?? ''),
   }
 }
 
@@ -385,12 +403,18 @@ export function computeMetrics(
     }
   }
 
-  // Spend by ad from Windsor
+  // Spend by ad from Windsor — fall back to raw name when no structured code is found
   const spendByAd: Record<string, number> = {}
   for (const row of filteredWindsor) {
-    const ad = wCodes(row).ad
-    if (!ad) continue
-    spendByAd[ad] = (spendByAd[ad] ?? 0) + (Number(row.spend) || 0)
+    const codes = wCodes(row)
+    // Prefer structured code; fall back to raw Windsor ad_name → adset_name → campaign name
+    const adKey =
+      codes.ad ||
+      (row.ad_name ?? '').trim() ||
+      (row.adset_name ?? '').trim() ||
+      (row.campaign ?? '').trim() ||
+      '(sem identificação)'
+    spendByAd[adKey] = (spendByAd[adKey] ?? 0) + (Number(row.spend) || 0)
   }
 
   // Funnel stages by ad

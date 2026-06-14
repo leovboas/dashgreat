@@ -1,6 +1,9 @@
+import { useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
+  LabelList,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -50,67 +53,126 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 interface Props {
   data: DailySpend[]
   activeChannels: string[]
+  dateFrom: string
+  dateTo: string
 }
 
-export default function InvestmentChart({ data, activeChannels }: Props) {
+export default function InvestmentChart({ data, activeChannels, dateFrom, dateTo }: Props) {
+  const [collapsed, setCollapsed] = useState(false)
+
   const visibleChannels = (activeChannels.length > 0 ? activeChannels : CHANNELS) as Channel[]
   const activeData = visibleChannels.filter((ch) => data.some((d) => (d[ch] as number) > 0))
 
+  // ── Footer stats ──
+  const last7 = data.slice(-7)
+  const avg7dTotal = last7.length > 0
+    ? last7.reduce((s, d) => s + activeData.reduce((cs, ch) => cs + (Number(d[ch]) || 0), 0), 0) / last7.length
+    : 0
+
+  // Days in the month of dateTo
+  const toDate = new Date(dateTo + 'T12:00:00')
+  const daysInMonth = new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0).getDate()
+  const projection = avg7dTotal * daysInMonth
+
+  // Days elapsed in period (for context)
+  const fromDate = new Date(dateFrom + 'T12:00:00')
+  const today = new Date(); today.setHours(12, 0, 0, 0)
+  const effectiveTo = toDate < today ? toDate : today
+  const elapsed = Math.max(1, Math.round((effectiveTo.getTime() - fromDate.getTime()) / 86_400_000) + 1)
+  const avgAllPeriod = elapsed > 0
+    ? data.reduce((s, d) => s + activeData.reduce((cs, ch) => cs + (Number(d[ch]) || 0), 0), 0) / elapsed
+    : 0
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Investimento Diário por Canal</h3>
-      {data.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-10">Sem dados de investimento no período.</p>
-      ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-            <defs>
-              {activeData.map((ch) => (
-                <linearGradient key={ch} id={`grad-inv-${ch}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={CHANNEL_COLORS[ch]} stopOpacity={0.35} />
-                  <stop offset="95%" stopColor={CHANNEL_COLORS[ch]} stopOpacity={0.05} />
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickFormatter={fmtDate}
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              domain={[0, 'auto']}
-              tickFormatter={(v: number) => `R$${(v / 1000).toFixed(0)}k`}
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-              width={52}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-            />
-            {activeData.map((ch) => (
-              <Area
-                key={ch}
-                type="monotone"
-                dataKey={ch}
-                stackId="1"
-                stroke={CHANNEL_COLORS[ch]}
-                fill={`url(#grad-inv-${ch})`}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 0 }}
-                name={ch}
-              />
-            ))}
-          </AreaChart>
-        </ResponsiveContainer>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-3.5 cursor-pointer select-none hover:bg-gray-50 transition-colors"
+        onClick={() => setCollapsed((v) => !v)}
+      >
+        <h3 className="text-sm font-semibold text-gray-700">Investimento Diário por Canal</h3>
+        <button className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
+          {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <>
+          {data.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-10 px-5">Sem dados de investimento no período.</p>
+          ) : (
+            <div className="px-2 pb-2">
+              {/* Enrich data with daily total for label */}
+              {(() => {
+                const enriched = data.map((d) => ({
+                  ...d,
+                  _total: activeData.reduce((s, ch) => s + (Number(d[ch]) || 0), 0),
+                }))
+                return (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={enriched} margin={{ top: 20, right: 8, left: 0, bottom: 0 }} barSize={22}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={fmtDate}
+                        tick={{ fontSize: 11, fill: '#9ca3af' }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        tickFormatter={(v: number) => `R$${(v / 1000).toFixed(0)}k`}
+                        tick={{ fontSize: 11, fill: '#9ca3af' }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={48}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                      {activeData.map((ch, idx) => (
+                        <Bar
+                          key={ch}
+                          dataKey={ch}
+                          stackId="invest"
+                          fill={CHANNEL_COLORS[ch]}
+                          name={ch}
+                          radius={idx === activeData.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                        >
+                          {/* Label only on the topmost bar */}
+                          {idx === activeData.length - 1 && (
+                            <LabelList
+                              dataKey="_total"
+                              position="top"
+                              formatter={(v: number) => v > 0 ? `R$${(v / 1000).toFixed(0)}k` : ''}
+                              style={{ fontSize: 9, fill: '#6b7280', fontWeight: 500 }}
+                            />
+                          )}
+                        </Bar>
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* Footer stats */}
+          <div className="flex items-center border-t border-gray-100 divide-x divide-gray-100">
+            <div className="flex flex-col px-5 py-3 flex-1">
+              <span className="text-xs text-gray-400 mb-0.5">Média diária — últimos 7 dias</span>
+              <span className="text-lg font-bold text-[#1a1a1a]">{fmtBRL(avg7dTotal)}<span className="text-xs font-normal text-gray-400">/dia</span></span>
+            </div>
+            <div className="flex flex-col px-5 py-3 flex-1">
+              <span className="text-xs text-gray-400 mb-0.5">Média diária — período completo</span>
+              <span className="text-lg font-bold text-[#1a1a1a]">{fmtBRL(avgAllPeriod)}<span className="text-xs font-normal text-gray-400">/dia</span></span>
+            </div>
+            <div className="flex flex-col px-5 py-3 flex-1">
+              <span className="text-xs text-gray-400 mb-0.5">Projeção mensal (base 7d)</span>
+              <span className="text-lg font-bold text-[#0C2F9F]">{fmtBRL(projection)}</span>
+              <span className="text-xs text-gray-400">{daysInMonth} dias no mês</span>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

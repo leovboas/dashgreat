@@ -1,3 +1,10 @@
+import { getCacheEntry, setCacheEntry } from './cache'
+
+const CACHE_TTL_MINUTES = 20
+
+// In-memory session cache
+const memCache = new Map<string, SupabaseEvent[]>()
+
 export interface SupabaseEvent {
   event_type: string
   deal_id: string
@@ -28,6 +35,19 @@ export async function fetchEvents(dateFrom: string, dateTo: string): Promise<Sup
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
   if (!supabaseUrl || !anonKey) return []
 
+  const cacheKey = `supabase_events_${dateFrom}_${dateTo}`
+
+  // 1. In-memory hit
+  if (memCache.has(cacheKey)) return memCache.get(cacheKey)!
+
+  // 2. localStorage hit
+  const stored = getCacheEntry<SupabaseEvent[]>(cacheKey)
+  if (stored) {
+    memCache.set(cacheKey, stored)
+    return stored
+  }
+
+  // 3. Network fetch
   const headers = {
     apikey: anonKey,
     Authorization: `Bearer ${anonKey}`,
@@ -36,7 +56,6 @@ export async function fetchEvents(dateFrom: string, dateTo: string): Promise<Sup
   const base = `${supabaseUrl}/rest/v1/events`
   const qs = `select=event_type,deal_id,event_date,payload&event_date=gte.${dateFrom}&event_date=lte.${dateTo}`
 
-  // First request: get total count + first page (no ORDER to avoid seq scan timeout)
   const first = await fetch(`${base}?${qs}`, {
     headers: { ...headers, Range: `0-${PAGE_SIZE - 1}`, 'Range-Unit': 'items', Prefer: 'count=exact' },
   })
@@ -49,19 +68,28 @@ export async function fetchEvents(dateFrom: string, dateTo: string): Promise<Sup
   const contentRange = first.headers.get('content-range') ?? ''
   const total = Number(contentRange.split('/')[1]) || firstData.length
 
-  if (total <= PAGE_SIZE) return firstData
+  let events = firstData
+  if (total > PAGE_SIZE) {
+    const totalPages = Math.ceil(total / PAGE_SIZE)
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => {
+        const from = (i + 1) * PAGE_SIZE
+        const to = from + PAGE_SIZE - 1
+        return fetch(`${base}?${qs}`, {
+          headers: { ...headers, Range: `${from}-${to}`, 'Range-Unit': 'items', Prefer: 'count=none' },
+        }).then((r) => (r.ok ? (r.json() as Promise<SupabaseEvent[]>) : Promise.resolve([] as SupabaseEvent[])))
+      }),
+    )
+    events = [firstData, ...rest].flat()
+  }
 
-  // Fetch remaining pages in parallel
-  const totalPages = Math.ceil(total / PAGE_SIZE)
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, i) => {
-      const from = (i + 1) * PAGE_SIZE
-      const to = from + PAGE_SIZE - 1
-      return fetch(`${base}?${qs}`, {
-        headers: { ...headers, Range: `${from}-${to}`, 'Range-Unit': 'items', Prefer: 'count=none' },
-      }).then((r) => (r.ok ? (r.json() as Promise<SupabaseEvent[]>) : Promise.resolve([] as SupabaseEvent[])))
-    }),
-  )
+  setCacheEntry(cacheKey, events, CACHE_TTL_MINUTES)
+  memCache.set(cacheKey, events)
+  return events
+}
 
-  return [firstData, ...rest].flat()
+export function invalidateSupabaseCache(dateFrom: string, dateTo: string) {
+  const key = `supabase_events_${dateFrom}_${dateTo}`
+  memCache.delete(key)
+  import('./cache').then(({ clearCacheByKey }) => clearCacheByKey(key))
 }

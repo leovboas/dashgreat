@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { fetchWindsorData, type WindsorRow } from '../api/windsor'
-import { fetchEvents, type SupabaseEvent } from '../api/supabase'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchWindsorData, invalidateWindsorCache, type WindsorRow } from '../api/windsor'
+import { fetchEvents, invalidateSupabaseCache, type SupabaseEvent } from '../api/supabase'
 
 // Re-export types so existing component imports still work
 export type { FunnelCounts, ChannelMetrics, DailySpend } from '../utils/computeMetrics'
@@ -24,7 +24,13 @@ export function useConversionsData(
     rawEvents: [],
   })
 
-  const load = useCallback(async () => {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const load = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) {
+      invalidateWindsorCache(dateFrom, dateTo)
+      invalidateSupabaseCache(dateFrom, dateTo)
+    }
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
       const [rawWindsorRows, rawEvents] = await Promise.all([
@@ -41,9 +47,17 @@ export function useConversionsData(
     }
   }, [dateFrom, dateTo])
 
+  // Debounce: wait 400ms after dates settle before fetching
   useEffect(() => {
-    load()
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => load(false), 400)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
   }, [load])
 
-  return { ...state, reload: load }
+  // reload() bypasses cache and refetches immediately
+  const reload = useCallback(() => load(true), [load])
+
+  return { ...state, reload }
 }

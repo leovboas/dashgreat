@@ -3,9 +3,15 @@
   "configurations": [
     {
       "name": "GreatPages Dashboard",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["node_modules/.bin/vite"],
       "port": 5173
+    },
+    {
+      "name": "Berry Sync Desk",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../berry-sync-desk", "run", "dev"],
+      "port": 8080
     }
   ]
 }

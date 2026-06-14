@@ -3,7 +3,23 @@
     "allow": [
       "Bash(npm create:*)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "mcp__1a3150a4-e7e0-49bb-b62e-bce593f33a2b__get_connectors",
+      "mcp__1a3150a4-e7e0-49bb-b62e-bce593f33a2b__get_fields",
+      "Bash(ls \"/Users/uptalk/Desktop/Clientes/Berry/Dashboard Lovable/.env\"*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(gh repo:*)",
+      "Bash(git clone:*)",
+      "Bash(bun install:*)",
+      "Bash(npm --version)",
+      "Bash(xargs kill:*)",
+      "Bash(chmod +x \"/Users/uptalk/Desktop/Clientes/Berry/Dashboard Lovable/start-berry-sync-desk.sh\")",
+      "Bash(cat \"/Users/uptalk/Desktop/Clientes/Berry/berry-sync-desk/vite.config\"*)",
+      "Bash(supabase --version)",
+      "Bash(brew install:*)",
+      "Bash(npx supabase:*)",
+      "Bash(curl -s \"https://qjaobipgdhefosefylit.supabase.co/rest/v1/settings?id=eq.1&select=chatwoot_url,chatwoot_account_id,chatwoot_token,hubspot_token\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYW9iaXBnZGhlZm9zZWZ5bGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTgxNzAsImV4cCI6MjA5NTQ3NDE3MH0.9t_neTiQWrFSocU_Eegg-t0Teak-UKMfG0PRkilJF7Y\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqYW9iaXBnZGhlZm9zZWZ5bGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTgxNzAsImV4cCI6MjA5NTQ3NDE3MH0.9t_neTiQWrFSocU_Eegg-t0Teak-UKMfG0PRkilJF7Y\")"
     ]
   }
 }

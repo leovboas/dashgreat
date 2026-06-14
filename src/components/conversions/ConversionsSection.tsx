@@ -7,6 +7,7 @@ import { computeMetrics, extractFilterOptions } from '../../utils/computeMetrics
 import type { PageData } from '../../hooks/useDashboard'
 import KPICards from './KPICards'
 import FunnelChart from './FunnelChart'
+import DailyLeadsChart from './DailyLeadsChart'
 import DailyFunnelChart from './DailyFunnelChart'
 import ChannelTable from './ChannelTable'
 import AdTable from './AdTable'
@@ -362,17 +363,21 @@ export default function ConversionsSection({ pages }: Props) {
             cpa={filteredCpa}
             pacingDeveria={pacingDeveria}
             pacingBudget={pacingBudget}
+            loading={loading}
+            loadingLeads={pages.some((p) => p.loadingLeads)}
           />
 
+          <DailyLeadsChart filteredLeads={filteredLeadsList} />
+
           <DailyFunnelChart dailyFunnel={dailyFunnel} filteredLeads={filteredLeadsList} />
+
+          <InvestmentChart data={dailySpend} activeChannels={activeChannels} dateFrom={dateFrom} dateTo={dateTo} />
 
           <FunnelChart funnel={funnelCounts} />
 
           <ChannelTable byChannel={byChannel} activeChannels={activeChannels} />
 
           <AdTable byAd={byAd} />
-
-          <InvestmentChart data={dailySpend} activeChannels={activeChannels} />
 
           <PacingSection byChannel={byChannel} dateFrom={dateFrom} dateTo={dateTo} />
         </>
