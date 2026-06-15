@@ -7,11 +7,11 @@ interface Stage {
 }
 
 const STAGES: Stage[] = [
-  { key: 'mql', label: 'MQL', color: 'bg-[#0C2F9F]' },
-  { key: 'sql', label: 'SQL', color: 'bg-[#0C2F9F]' },
-  { key: 'opportunity', label: 'Oportunidade', color: 'bg-[#0C2F9F]' },
-  { key: 'meeting', label: 'Reunião', color: 'bg-[#0C2F9F]' },
-  { key: 'won', label: 'Venda', color: 'bg-[#0C2F9F]' },
+  { key: 'mql', label: 'MQL', color: 'bg-[#0D2F9F]' },
+  { key: 'sql', label: 'SQL', color: 'bg-[#0D2F9F]' },
+  { key: 'opportunity', label: 'Oportunidade', color: 'bg-[#0D2F9F]' },
+  { key: 'meeting', label: 'Reunião', color: 'bg-[#0D2F9F]' },
+  { key: 'won', label: 'Venda', color: 'bg-[#0D2F9F]' },
 ]
 
 // Labels for the transition between stages: "47.7% de MQL → SQL"

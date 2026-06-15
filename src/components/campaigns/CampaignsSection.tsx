@@ -18,7 +18,7 @@ import CampaignTable from './CampaignTable'
 import PositioningTable from './PositioningTable'
 import LeadsHeatmapChart from './LeadsHeatmapChart'
 
-const SELECT_CLS = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400'
+const SELECT_CLS = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F]'
 
 interface Props {
   pages: PageData[]
@@ -176,7 +176,7 @@ export default function CampaignsSection({ pages }: Props) {
               setDateFrom(''); setDateTo(''); setSourceFilter('')
               setCampaignCodeFilter(''); setAdSetFilter(''); setAdFilter(''); setPageFilter('')
             }}
-            className="mt-3 text-xs text-blue-500 hover:underline"
+            className="mt-3 text-xs text-[#0D2F9F] hover:underline"
           >
             Limpar filtros
           </button>
@@ -189,7 +189,7 @@ export default function CampaignsSection({ pages }: Props) {
           label="Total de leads (período)"
           value={filtered.length.toLocaleString('pt-BR')}
           sub={allLeads.length !== filtered.length ? `de ${allLeads.length} no total` : 'todos os leads'}
-          color="text-blue-600"
+          color="text-[#0D2F9F]"
           icon={<Users size={18} />}
         />
         <MetricCard

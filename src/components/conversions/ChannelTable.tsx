@@ -140,10 +140,10 @@ export default function ChannelTable({ byChannel, activeChannels }: Props) {
                   <span className="inline-flex items-center gap-0.5 justify-end w-full">
                     {label !== 'Canal' && key && sortKey === key && (
                       sortDir === 'asc'
-                        ? <ChevronUp size={11} className="text-blue-500 shrink-0" />
-                        : <ChevronDown size={11} className="text-blue-500 shrink-0" />
+                        ? <ChevronUp size={11} className="text-[#0D2F9F] shrink-0" />
+                        : <ChevronDown size={11} className="text-[#0D2F9F] shrink-0" />
                     )}
-                    <span className={sortKey === key ? 'text-blue-500' : ''}>{label}</span>
+                    <span className={sortKey === key ? 'text-[#0D2F9F]' : ''}>{label}</span>
                   </span>
                 </th>
               ))}

@@ -39,7 +39,7 @@ export default function LoginScreen({ envPassword, storedHash, onLogin, onReset 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8">
         <div className="flex flex-col items-center mb-8">
           <img src={berryLogo} alt="Berry" className="h-14 w-auto object-contain mb-3" />
@@ -49,7 +49,7 @@ export default function LoginScreen({ envPassword, storedHash, onLogin, onReset 
         </div>
 
         <div className="flex items-center gap-2 mb-5">
-          <div className="bg-blue-600 text-white rounded-lg p-1.5">
+          <div className="bg-[#0D2F9F] text-white rounded-lg p-1.5">
             <Lock size={16} />
           </div>
           <p className="text-sm text-gray-400">Digite sua senha para acessar</p>
@@ -63,7 +63,7 @@ export default function LoginScreen({ envPassword, storedHash, onLogin, onReset 
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError('') }}
               placeholder="••••••••"
-              className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50"
+              className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] bg-gray-50"
               autoFocus
               required
             />
@@ -74,7 +74,7 @@ export default function LoginScreen({ envPassword, storedHash, onLogin, onReset 
           <button
             type="submit"
             disabled={!password || loading}
-            className="mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold py-3 rounded-xl transition-colors"
+            className="mt-2 bg-[#0D2F9F] hover:bg-[#0A2580] disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold py-3 rounded-xl transition-colors"
           >
             {loading ? 'Verificando...' : 'Entrar'}
           </button>

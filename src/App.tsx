@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, LogOut, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { RefreshCw, LogOut, Clock, AlertCircle, Loader2, Trash2 } from 'lucide-react'
 import type { Config } from './types/greatpages'
 import { useDashboard } from './hooks/useDashboard'
 import ConfigScreen from './components/ConfigScreen'
@@ -143,9 +143,17 @@ export default function App() {
               </span>
             )}
             <button
+              onClick={() => { clearAllCache(); window.location.reload() }}
+              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+              title="Limpar cache"
+            >
+              <Trash2 size={14} />
+              <span className="hidden sm:inline">Limpar cache</span>
+            </button>
+            <button
               onClick={refresh}
               disabled={loading}
-              className="flex items-center gap-1.5 text-sm text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-sm text-[#0D2F9F] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Atualizar</span>
@@ -207,7 +215,7 @@ export default function App() {
                     label="Visitas totais"
                     value={totals.visitas.toLocaleString('pt-BR')}
                     sub={`${totals.visitas7d.toLocaleString('pt-BR')} nos últimos 7 dias`}
-                    color="text-blue-600"
+                    color="text-[#0D2F9F]"
                   />
                   <MetricCard
                     label="Conversões"
@@ -282,7 +290,7 @@ function TabButton({
       onClick={onClick}
       className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
         active
-          ? 'border-blue-600 text-blue-600'
+          ? 'border-[#0D2F9F] text-[#0D2F9F]'
           : 'border-transparent text-gray-500 hover:text-gray-700'
       }`}
     >

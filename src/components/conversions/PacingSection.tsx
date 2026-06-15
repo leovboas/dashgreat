@@ -31,24 +31,29 @@ function fmtPct(n: number) {
   return n.toFixed(1) + '%'
 }
 
-function statusColor(_pct: number): string {
-  return 'text-[#1a1a1a] bg-gray-100'
+/** pct = (spend / deveria) * 100. Green: 97–102. Red: outside that range. */
+function statusColor(pct: number): string {
+  if (pct === 0) return 'text-gray-400 bg-gray-100'
+  const ok = pct >= 97 && pct <= 102
+  return ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'
 }
 
 function statusLabel(pct: number): string {
-  if (pct >= 95 && pct <= 102) return 'No ritmo'
+  if (pct === 0) return '—'
   if (pct > 102) return 'Acima do teto'
+  if (pct >= 97) return 'No ritmo'
   return 'Abaixo do ritmo'
 }
 
-/** Days elapsed in the period (capped at today), and total days in the month of dateFrom */
+/** Days elapsed in the period (capped at yesterday — never uses partial today data), and total days in the month of dateFrom */
 function pacingDays(dateFrom: string, dateTo: string): { elapsed: number; total: number } {
   const from = new Date(dateFrom + 'T12:00:00')
   const to = new Date(dateTo + 'T12:00:00')
-  const today = new Date()
-  today.setHours(12, 0, 0, 0)
+  const yesterday = new Date()
+  yesterday.setHours(12, 0, 0, 0)
+  yesterday.setDate(yesterday.getDate() - 1)
 
-  const effectiveTo = to < today ? to : today
+  const effectiveTo = to < yesterday ? to : yesterday
   const elapsed = Math.max(1, Math.round((effectiveTo.getTime() - from.getTime()) / 86_400_000) + 1)
   const total = new Date(from.getFullYear(), from.getMonth() + 1, 0).getDate()
   return { elapsed, total }
@@ -112,7 +117,7 @@ export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
         </div>
         <button
           onClick={() => { setDraft({ ...budgets }); setEditing((v) => !v) }}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#0D2F9F] px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
         >
           <Settings2 size={13} />
           {editing ? 'Cancelar' : 'Editar verbas'}
@@ -133,7 +138,7 @@ export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
                   value={draft[ch] || ''}
                   placeholder="0"
                   onChange={(e) => setDraft((d) => ({ ...d, [ch]: Number(e.target.value) || 0 }))}
-                  className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F]"
                 />
               </div>
             ))}
@@ -141,7 +146,7 @@ export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
           <button
             onClick={saveBudgets}
             disabled={syncing}
-            className="mt-3 flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
+            className="mt-3 flex items-center gap-1.5 px-4 py-1.5 bg-[#0D2F9F] text-white text-xs font-medium rounded-lg hover:bg-[#0A2580] disabled:opacity-60 transition-colors"
           >
             {syncing && <Loader2 size={11} className="animate-spin" />}
             {syncing ? 'Salvando...' : 'Salvar verbas'}
@@ -182,7 +187,7 @@ export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     {budget > 0 ? (
-                      <span className={`text-xs font-medium ${statusColor(como).split(' ')[0]}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(como)}`}>
                         {statusLabel(como)}
                       </span>
                     ) : '—'}
@@ -196,20 +201,27 @@ export default function PacingSection({ byChannel, dateFrom, dateTo }: Props) {
               <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(totalBudget)}</td>
               <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(totalSpend)}</td>
               <td className="px-3 py-2.5 text-right text-gray-500 text-xs">{totalBudget > 0 ? fmtBRL(totalDeveria) : '—'}</td>
-              <td className="px-3 py-2.5 text-right">
-                {totalBudget > 0 ? (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(totalDeveria > 0 ? (totalSpend / totalDeveria) * 100 : 0)}`}>
-                    {fmtPct(totalDeveria > 0 ? (totalSpend / totalDeveria) * 100 : 0)}
-                  </span>
-                ) : '—'}
-              </td>
-              <td className="px-3 py-2.5 text-right">
-                {totalBudget > 0 ? (
-                  <span className={`text-xs font-medium ${statusColor(totalDeveria > 0 ? (totalSpend / totalDeveria) * 100 : 0).split(' ')[0]}`}>
-                    {statusLabel(totalDeveria > 0 ? (totalSpend / totalDeveria) * 100 : 0)}
-                  </span>
-                ) : '—'}
-              </td>
+              {(() => {
+                const totalComo = totalDeveria > 0 ? (totalSpend / totalDeveria) * 100 : 0
+                return (
+                  <>
+                    <td className="px-3 py-2.5 text-right">
+                      {totalBudget > 0 ? (
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(totalComo)}`}>
+                          {fmtPct(totalComo)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {totalBudget > 0 ? (
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(totalComo)}`}>
+                          {statusLabel(totalComo)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                  </>
+                )
+              })()}
             </tr>
           </tbody>
         </table>

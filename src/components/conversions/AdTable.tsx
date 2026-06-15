@@ -42,6 +42,7 @@ function sortVal(r: AdMetrics, key: SortKey): number {
 
 const COL_KEYS: { label: string; key: SortKey | null }[] = [
   { label: 'Anúncio', key: null },
+  { label: 'Status', key: null },
   { label: 'Investimento', key: 'spend' },
   { label: 'MQLs', key: 'mqls' },
   { label: 'CPMQL', key: 'cpmql' },
@@ -93,6 +94,19 @@ export default function AdTable({ byAd }: Props) {
     { ad: 'Total', spend: 0, mqls: 0, sqls: 0, opportunities: 0, meetings: 0, won: 0, mrr: 0 },
   )
 
+  function StatusBadge({ status }: { status?: string }) {
+    if (!status) return <span className="text-gray-300 text-xs">—</span>
+    const isActive = status === 'ENABLED' || status === 'ACTIVE'
+    return (
+      <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+        isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
+      }`}>
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+        {isActive ? 'Ativo' : (status === 'PAUSED' || status === 'DISABLED') ? 'Pausado' : status}
+      </span>
+    )
+  }
+
   function Row({ r, isTotal = false }: { r: AdMetrics; isTotal?: boolean }) {
     const MAX_LEN = 40
     const truncated = r.ad.length > MAX_LEN ? r.ad.slice(0, MAX_LEN) + '…' : r.ad
@@ -105,6 +119,9 @@ export default function AdTable({ byAd }: Props) {
           >
             {isTotal ? r.ad : truncated}
           </span>
+        </td>
+        <td className="px-3 py-2.5 text-center">
+          {!isTotal && <StatusBadge status={r.status} />}
         </td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(r.spend)}</td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtN(r.mqls)}</td>
@@ -133,16 +150,16 @@ export default function AdTable({ byAd }: Props) {
               {COL_KEYS.map(({ label, key }) => (
                 <th
                   key={label}
-                  className={`px-3 py-2 font-medium select-none ${label === 'Anúncio' ? 'text-left' : 'text-right'} ${key ? 'cursor-pointer hover:text-gray-600' : ''}`}
+                  className={`px-3 py-2 font-medium select-none ${label === 'Anúncio' ? 'text-left' : label === 'Status' ? 'text-center' : 'text-right'} ${key ? 'cursor-pointer hover:text-gray-600' : ''}`}
                   onClick={key ? () => handleSort(key) : undefined}
                 >
                   <span className="inline-flex items-center gap-0.5 justify-end w-full">
                     {label !== 'Anúncio' && key && sortKey === key && (
                       sortDir === 'asc'
-                        ? <ChevronUp size={11} className="text-blue-500 shrink-0" />
-                        : <ChevronDown size={11} className="text-blue-500 shrink-0" />
+                        ? <ChevronUp size={11} className="text-[#0D2F9F] shrink-0" />
+                        : <ChevronDown size={11} className="text-[#0D2F9F] shrink-0" />
                     )}
-                    <span className={sortKey === key ? 'text-blue-500' : ''}>{label}</span>
+                    <span className={sortKey === key ? 'text-[#0D2F9F]' : ''}>{label}</span>
                   </span>
                 </th>
               ))}

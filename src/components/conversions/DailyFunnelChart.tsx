@@ -56,9 +56,9 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 const METRICS = [
-  { key: 'mqls',  label: 'MQLs',  color: '#0C2F9F', bg: 'bg-blue-50',   text: 'text-[#0C2F9F]' },
+  { key: 'mqls',  label: 'MQLs',  color: '#0D2F9F', bg: 'bg-blue-50',   text: 'text-[#0D2F9F]' },
   { key: 'cpmql', label: 'CPMQL', color: '#f59e0b', bg: 'bg-amber-50',  text: 'text-amber-700' },
-  { key: 'leads', label: 'Leads', color: '#6366f1', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+  { key: 'leads', label: 'Leads', color: '#0D2F9F', bg: 'bg-blue-50', text: 'text-[#0D2F9F]' },
 ] as const
 
 type MetricKey = 'mqls' | 'cpmql' | 'leads'
@@ -105,7 +105,11 @@ export default function DailyFunnelChart({ dailyFunnel, filteredLeads }: Props) 
 
   // ── Trend: last 7 days vs previous 7 days ──
   const trend = useMemo(() => {
-    const sortedDates = [...allDates].sort()
+    const yesterdayStr = (() => {
+      const d = new Date(); d.setDate(d.getDate() - 1)
+      return d.toISOString().slice(0, 10)
+    })()
+    const sortedDates = [...allDates].sort().filter((d) => d <= yesterdayStr)
     const last7 = sortedDates.slice(-7)
     const prev7 = sortedDates.slice(-14, -7)
 
@@ -231,13 +235,13 @@ export default function DailyFunnelChart({ dailyFunnel, filteredLeads }: Props) 
                   type="linear"
                   dataKey="leads"
                   name="Leads"
-                  stroke="#6366f1"
+                  stroke="#0D2F9F"
                   strokeWidth={2}
-                  dot={{ r: 2.5, fill: '#6366f1', strokeWidth: 0 }}
+                  dot={{ r: 2.5, fill: '#0D2F9F', strokeWidth: 0 }}
                   activeDot={{ r: 4 }}
                   connectNulls={false}
                 >
-                  <LabelList dataKey="leads" position="top" style={{ fontSize: 9, fill: '#a5b4fc' }} />
+                  <LabelList dataKey="leads" position="top" style={{ fontSize: 11, fill: '#a5b4fc' }} />
                 </Line>
               )}
 
@@ -247,13 +251,13 @@ export default function DailyFunnelChart({ dailyFunnel, filteredLeads }: Props) 
                   type="linear"
                   dataKey="mqls"
                   name="MQLs"
-                  stroke="#0C2F9F"
+                  stroke="#0D2F9F"
                   strokeWidth={2}
-                  dot={{ r: 2.5, fill: '#0C2F9F', strokeWidth: 0 }}
+                  dot={{ r: 2.5, fill: '#0D2F9F', strokeWidth: 0 }}
                   activeDot={{ r: 4 }}
                   connectNulls={false}
                 >
-                  <LabelList dataKey="mqls" position="bottom" style={{ fontSize: 9, fill: '#93c5fd' }} />
+                  <LabelList dataKey="mqls" position="bottom" style={{ fontSize: 11, fill: '#93c5fd' }} />
                 </Line>
               )}
 
@@ -274,7 +278,7 @@ export default function DailyFunnelChart({ dailyFunnel, filteredLeads }: Props) 
                     dataKey="cpmql"
                     position="top"
                     formatter={(v: number) => `${Math.round(v / 1000)}k`}
-                    style={{ fontSize: 9, fill: '#fcd34d' }}
+                    style={{ fontSize: 11, fill: '#fcd34d' }}
                   />
                 </Line>
               )}

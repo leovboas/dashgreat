@@ -152,7 +152,7 @@ function ChartShell({
           onClick={onToggleStack}
           className={`text-xs px-3 py-1.5 rounded-lg border transition-all font-medium ${
             stackBySource
-              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+              ? 'bg-[#0D2F9F] text-white border-[#0D2F9F] shadow-sm'
               : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
           }`}
         >

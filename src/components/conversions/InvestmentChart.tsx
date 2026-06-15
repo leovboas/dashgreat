@@ -76,7 +76,7 @@ export default function InvestmentChart({ data, activeChannels, dateFrom, dateTo
 
   // Days elapsed in period (for context)
   const fromDate = new Date(dateFrom + 'T12:00:00')
-  const today = new Date(); today.setHours(12, 0, 0, 0)
+  const today = new Date(); today.setHours(12, 0, 0, 0); today.setDate(today.getDate() - 1)
   const effectiveTo = toDate < today ? toDate : today
   const elapsed = Math.max(1, Math.round((effectiveTo.getTime() - fromDate.getTime()) / 86_400_000) + 1)
   const avgAllPeriod = elapsed > 0
@@ -109,26 +109,26 @@ export default function InvestmentChart({ data, activeChannels, dateFrom, dateTo
                   _total: activeData.reduce((s, ch) => s + (Number(d[ch]) || 0), 0),
                 }))
                 return (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={enriched} margin={{ top: 20, right: 8, left: 0, bottom: 0 }} barSize={22}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={enriched} margin={{ top: 20, right: 16, left: 0, bottom: 0 }} maxBarSize={32}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                       <XAxis
                         dataKey="date"
                         tickFormatter={fmtDate}
-                        tick={{ fontSize: 11, fill: '#9ca3af' }}
+                        tick={{ fontSize: 11, fill: '#94a3b8' }}
                         axisLine={false}
                         tickLine={false}
                         interval="preserveStartEnd"
                       />
                       <YAxis
                         tickFormatter={(v: number) => `R$${(v / 1000).toFixed(0)}k`}
-                        tick={{ fontSize: 11, fill: '#9ca3af' }}
+                        tick={{ fontSize: 11, fill: '#94a3b8' }}
                         axisLine={false}
                         tickLine={false}
                         width={48}
                       />
                       <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 6, color: '#94a3b8' }} />
                       {activeData.map((ch, idx) => (
                         <Bar
                           key={ch}
@@ -144,7 +144,7 @@ export default function InvestmentChart({ data, activeChannels, dateFrom, dateTo
                               dataKey="_total"
                               position="top"
                               formatter={(v: number) => v > 0 ? `R$${(v / 1000).toFixed(0)}k` : ''}
-                              style={{ fontSize: 9, fill: '#6b7280', fontWeight: 500 }}
+                              style={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
                             />
                           )}
                         </Bar>
@@ -168,7 +168,7 @@ export default function InvestmentChart({ data, activeChannels, dateFrom, dateTo
             </div>
             <div className="flex flex-col px-5 py-3 flex-1">
               <span className="text-xs text-gray-400 mb-0.5">Projeção mensal (base 7d)</span>
-              <span className="text-lg font-bold text-[#0C2F9F]">{fmtBRL(projection)}</span>
+              <span className="text-lg font-bold text-[#0D2F9F]">{fmtBRL(projection)}</span>
               <span className="text-xs text-gray-400">{daysInMonth} dias no mês</span>
             </div>
           </div>

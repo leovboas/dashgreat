@@ -6,7 +6,7 @@ interface Props {
   icon?: React.ReactNode
 }
 
-export default function MetricCard({ label, value, sub, color = 'text-blue-600', icon }: Props) {
+export default function MetricCard({ label, value, sub, color = 'text-[#0D2F9F]', icon }: Props) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-2">
       <div className="flex items-center justify-between">

@@ -4,7 +4,7 @@ export function capitalize(s: string) {
 
 export const PALETTE = [
   '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899',
-  '#06b6d4', '#f97316', '#14b8a6', '#6366f1', '#84cc16',
+  '#06b6d4', '#f97316', '#14b8a6', '#0D2F9F', '#84cc16',
   '#ef4444', '#a855f7',
 ]
 

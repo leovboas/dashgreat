@@ -43,7 +43,7 @@ export default function PageRow({ data }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5"
+              className="text-xs text-[#0D2F9F] hover:underline flex items-center gap-1 mt-0.5"
             >
               {summary.link.publico} <ExternalLink size={10} />
             </a>

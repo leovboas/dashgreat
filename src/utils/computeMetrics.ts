@@ -33,6 +33,7 @@ export interface AdMetrics {
   meetings: number
   won: number
   mrr: number
+  status?: string
 }
 
 export interface DailySpend {
@@ -56,6 +57,7 @@ export interface ConversionFilters {
   pages?: string[]      // landing page IDs
   revenue?: string[]    // faturamento values
   segments?: string[]   // segment values
+  onlyActive?: boolean  // when true, filter Windsor to ACTIVE campaign_status + status only
 }
 
 export interface FilterOptions {
@@ -77,6 +79,10 @@ export interface MetricsResult {
   dailyFunnel: DailyFunnelPoint[]
   /** True when LP/Revenue/Segment filters are active without a campaign filter — Windsor spend is NOT narrowed */
   investmentPartial: boolean
+  /** Most recent campaign_status per campaign code (from all rows, pre-filter) */
+  campaignStatuses: Record<string, string>
+  /** Most recent status per ad key (from all rows, pre-filter) */
+  adStatuses: Record<string, string>
 }
 
 // ── Helpers ──
@@ -131,6 +137,31 @@ function wCodes(row: WindsorRow) {
     adSet: extractAdSetCode(row.adset_name ?? ''),
     ad: extractAdCode(row.ad_name ?? ''),
   }
+}
+
+/**
+ * Resolve the best ad key for grouping Windsor spend.
+ * Priority: structured code from ad_name → adset_name → campaign
+ * then raw ad_name → raw adset_name → raw campaign.
+ * This handles PMAX/Google campaigns where ad_name is empty but
+ * the campaign/adset name contains the structured code (e.g. "[G67]...").
+ */
+function resolveAdKey(row: WindsorRow): string {
+  const codes = wCodes(row)
+  // codes.ad already cascades through adset/campaign codes within ad_name only.
+  // Also try extracting from adset_name and campaign independently.
+  const structuredCode =
+    codes.ad ||
+    extractAdSetCode(row.adset_name ?? '') ||
+    extractCampaignCode(row.campaign ?? '')
+
+  return (
+    structuredCode ||
+    (row.ad_name ?? '').trim() ||
+    (row.adset_name ?? '').trim() ||
+    (row.campaign ?? '').trim() ||
+    '(sem identificação)'
+  )
 }
 
 // ── Filter options extraction ──
@@ -200,14 +231,48 @@ export function computeMetrics(
     pages = [],
     revenue = [],
     segments = [],
+    onlyActive = false,
   } = filters
 
   const hasCampaignFilters = campaigns.length > 0 || adSets.length > 0 || ads.length > 0
   const hasNonWindsorFilters = pages.length > 0 || revenue.length > 0 || segments.length > 0
   const investmentPartial = hasNonWindsorFilters && !hasCampaignFilters
 
+  // ── Compute status maps from ALL rows (pre-filter), using most recent date ──
+  const campaignStatusDate: Record<string, string> = {}
+  const campaignStatuses: Record<string, string> = {}
+  const adStatusDate: Record<string, string> = {}
+  const adStatuses: Record<string, string> = {}
+
+  for (const row of windsorRows) {
+    if (!row.date) continue
+    const cc = extractCampaignCode(row.campaign ?? '')
+    if (cc && row.campaign_status) {
+      if (!campaignStatusDate[cc] || row.date > campaignStatusDate[cc]) {
+        campaignStatusDate[cc] = row.date
+        campaignStatuses[cc] = row.campaign_status
+      }
+    }
+    const adKey = resolveAdKey(row)
+    if (adKey && row.status) {
+      if (!adStatusDate[adKey] || row.date > adStatusDate[adKey]) {
+        adStatusDate[adKey] = row.date
+        adStatuses[adKey] = row.status
+      }
+    }
+  }
+
   // ── Filter Windsor rows ──
   let filteredWindsor = windsorRows
+
+  // "Apenas ativos" — restrict to active campaigns AND active creatives
+  // Windsor uses 'ENABLED' for active status
+  if (onlyActive) {
+    const isActive = (s?: string) => s === 'ENABLED' || s === 'ACTIVE'
+    filteredWindsor = filteredWindsor.filter(
+      (r) => isActive(r.campaign_status) && isActive(r.status),
+    )
+  }
 
   if (!investmentPartial) {
     if (campaigns.length > 0) {
@@ -393,31 +458,34 @@ export function computeMetrics(
   }))
 
   // ── By-ad breakdown ──
-  // Build deal → ad map
-  const dealAd = new Map<string, string>()
-  for (const ev of channelFilteredEvents) {
-    if (!ev.deal_id) continue
-    if (!dealAd.has(ev.deal_id)) {
-      const { ad } = evtCodes(ev)
-      if (ad) dealAd.set(ev.deal_id, ad)
-    }
-  }
 
-  // Spend by ad from Windsor — fall back to raw name when no structured code is found
+  // Step 1: Compute spend by ad (needed to resolve deal → spend key mapping)
   const spendByAd: Record<string, number> = {}
   for (const row of filteredWindsor) {
-    const codes = wCodes(row)
-    // Prefer structured code; fall back to raw Windsor ad_name → adset_name → campaign name
-    const adKey =
-      codes.ad ||
-      (row.ad_name ?? '').trim() ||
-      (row.adset_name ?? '').trim() ||
-      (row.campaign ?? '').trim() ||
-      '(sem identificação)'
+    const adKey = resolveAdKey(row)
     spendByAd[adKey] = (spendByAd[adKey] ?? 0) + (Number(row.spend) || 0)
   }
+  const spendKeys = new Set(Object.keys(spendByAd))
 
-  // Funnel stages by ad
+  // Step 2: Build deal → resolved spend key map.
+  // A deal's UTM ad code (e.g. "G67C1AD2") is resolved to the most specific
+  // matching spend key: full ad → adset code → campaign code → full ad (fallback).
+  // This handles PMAX campaigns where Windsor groups spend at campaign level (G67)
+  // while UTMs carry granular codes (G67C1AD2).
+  const dealAd = new Map<string, string>()
+  for (const ev of channelFilteredEvents) {
+    if (!ev.deal_id || dealAd.has(ev.deal_id)) continue
+    const { campaign, adSet, ad } = evtCodes(ev)
+    // Prefer most specific key that exists in Windsor spend data
+    const resolved =
+      (ad && spendKeys.has(ad) ? ad : null) ??
+      (adSet && spendKeys.has(adSet) ? adSet : null) ??
+      (campaign && spendKeys.has(campaign) ? campaign : null) ??
+      (ad || null)
+    if (resolved) dealAd.set(ev.deal_id, resolved)
+  }
+
+  // Step 3: Funnel stages by ad
   const stageDealsByAd: Record<string, Record<string, Set<string>>> = {
     mql: {},
     sql: {},
@@ -458,6 +526,7 @@ export function computeMetrics(
     meetings: stageDealsByAd.meeting_completed[ad]?.size ?? 0,
     won: stageDealsByAd.deal_won[ad]?.size ?? 0,
     mrr: mrrByAd[ad] ?? 0,
+    status: adStatuses[ad],
   }))
 
   return {
@@ -469,5 +538,7 @@ export function computeMetrics(
     dailySpend,
     dailyFunnel,
     investmentPartial,
+    campaignStatuses,
+    adStatuses,
   }
 }

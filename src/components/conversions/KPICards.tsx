@@ -17,8 +17,14 @@ function pct(a: number, b: number): string {
 }
 
 
-function pacingColor(_ritmo: number): string {
-  return 'text-[#1a1a1a]'
+function pacingColor(ritmo: number): string {
+  if (ritmo === 0) return 'text-gray-400'
+  return ritmo >= 97 && ritmo <= 102 ? 'text-emerald-600' : 'text-red-500'
+}
+
+function pacingBg(ritmo: number): string {
+  if (ritmo === 0) return 'bg-gray-50'
+  return ritmo >= 97 && ritmo <= 102 ? 'bg-emerald-50' : 'bg-red-50'
 }
 
 function Skeleton({ wide = false }: { wide?: boolean }) {
@@ -114,7 +120,7 @@ export default function KPICards({
                         Deveríamos: <span className="font-medium text-gray-600">{fmtBRL(pacingDeveria)}</span>
                       </span>
                       {ritmo !== null && (
-                        <span className={`text-xs font-semibold ${pacingColor(ritmo)}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pacingColor(ritmo)} ${pacingBg(ritmo)}`}>
                           Ritmo: {ritmo.toFixed(1)}%
                         </span>
                       )}

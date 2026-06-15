@@ -7,9 +7,22 @@ interface Props {
   selected: string[]
   onChange: (v: string[]) => void
   disabled?: boolean
+  /** Maps option value → status string (e.g. 'ACTIVE' | 'PAUSED') to show colored dot */
+  statusMap?: Record<string, string>
 }
 
-export default function MultiSelect({ label, options, selected, onChange, disabled }: Props) {
+function StatusDot({ status }: { status?: string }) {
+  if (!status) return null
+  const isActive = status === 'ENABLED' || status === 'ACTIVE'
+  return (
+    <span
+      className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-emerald-500' : 'bg-gray-300'}`}
+      title={isActive ? 'Ativa' : (status === 'PAUSED' || status === 'DISABLED') ? 'Pausada' : status}
+    />
+  )
+}
+
+export default function MultiSelect({ label, options, selected, onChange, disabled, statusMap }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -35,16 +48,16 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
         disabled={isDisabled}
         onClick={() => setOpen((o) => !o)}
         className={`flex items-center gap-1.5 text-xs border rounded-lg px-2.5 py-1.5 whitespace-nowrap transition-colors
-          ${count > 0 ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}
+          ${count > 0 ? 'border-[#0D2F9F] bg-blue-50 text-[#0D2F9F]' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}
           disabled:opacity-40 disabled:cursor-not-allowed`}
       >
         <span className="font-medium">{label}</span>
         {count > 0 && (
-          <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+          <span className="bg-[#0D2F9F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
             {count}
           </span>
         )}
-        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''} ${count > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
+        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''} ${count > 0 ? 'text-[#0D2F9F]' : 'text-gray-400'}`} />
       </button>
 
       {open && (
@@ -67,8 +80,9 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
                   type="checkbox"
                   checked={selected.includes(opt)}
                   onChange={() => toggle(opt)}
-                  className="w-3.5 h-3.5 accent-blue-600 shrink-0"
+                  className="w-3.5 h-3.5 accent-[#0D2F9F] shrink-0"
                 />
+                {statusMap && <StatusDot status={statusMap[opt]} />}
                 <span className="text-xs text-gray-700 truncate max-w-48">{opt}</span>
               </label>
             ))}

@@ -28,7 +28,7 @@ function CustomTooltip({ active, payload, label }: any) {
     <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
       <p className="text-gray-500 font-medium mb-1">{fmtDate(label)}</p>
       <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#6366f1' }} />
+        <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: '#0D2F9F' }} />
         <span className="text-gray-600">Leads:</span>
         <span className="font-semibold text-gray-800">{payload[0].value}</span>
       </div>
@@ -60,7 +60,7 @@ export default function DailyLeadsChart({ filteredLeads }: Props) {
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-gray-700">Leads por dia</h3>
           {collapsed && (
-            <span className="text-xs bg-indigo-50 text-indigo-700 font-medium px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-blue-50 text-[#0D2F9F] font-medium px-2 py-0.5 rounded-full">
               {total} total
             </span>
           )}
@@ -90,11 +90,11 @@ export default function DailyLeadsChart({ filteredLeads }: Props) {
                 domain={[0, max + Math.ceil(max * 0.15)]}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-              <Bar dataKey="leads" name="Leads" fill="#6366f1" radius={[3, 3, 0, 0]} maxBarSize={32}>
+              <Bar dataKey="leads" name="Leads" fill="#0D2F9F" radius={[3, 3, 0, 0]} maxBarSize={32}>
                 <LabelList
                   dataKey="leads"
                   position="top"
-                  style={{ fontSize: 9, fill: '#a5b4fc', fontWeight: 500 }}
+                  style={{ fontSize: 11, fill: '#a5b4fc', fontWeight: 500 }}
                 />
               </Bar>
             </BarChart>

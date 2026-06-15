@@ -53,7 +53,7 @@ export default function CampaignTable({ leads, totalLeads }: Props) {
                   </td>
                   <td className="py-2 pr-4 text-right font-bold text-gray-700">{rows.length}</td>
                   <td className="py-2 pr-4 text-right">
-                    <span className="inline-block bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    <span className="inline-block bg-blue-50 text-[#0D2F9F] text-xs font-semibold px-2 py-0.5 rounded-full">
                       {pct}%
                     </span>
                   </td>
@@ -102,7 +102,7 @@ function PageUrls({ rows }: { rows: ParsedLead[] }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-blue-500 hover:underline truncate max-w-[210px]"
+          className="flex items-center gap-1 text-xs text-[#0D2F9F] hover:underline truncate max-w-[210px]"
           title={url}
         >
           <ExternalLink size={10} className="shrink-0" />

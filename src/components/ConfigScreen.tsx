@@ -41,10 +41,10 @@ export default function ConfigScreen({ existingConfig, onSave }: Props) {
   const canSubmit = credentialsReady && !!(password && confirmPwd)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="bg-blue-600 text-white rounded-xl p-2">
+          <div className="bg-[#0D2F9F] text-white rounded-xl p-2">
             <Settings2 size={22} />
           </div>
           <div>
@@ -106,7 +106,7 @@ export default function ConfigScreen({ existingConfig, onSave }: Props) {
           <button
             type="submit"
             disabled={!canSubmit || submitting}
-            className="mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold py-3 rounded-xl transition-colors"
+            className="mt-2 bg-[#0D2F9F] hover:bg-[#0A2580] disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold py-3 rounded-xl transition-colors"
           >
             {submitting ? 'Salvando...' : 'Configurar e Acessar'}
           </button>
@@ -137,7 +137,7 @@ function Field({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50"
+        className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] bg-gray-50"
         required
       />
     </div>
