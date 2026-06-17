@@ -30,6 +30,17 @@ export function parseCampaign(utmCampaign: string): { campaign: string; adSet: s
   return { campaign, adSet, ad }
 }
 
+// BRT = UTC-3 (fixed, no DST since 2019)
+const BRT_OFFSET_MS = 3 * 60 * 60 * 1000
+
+function toBRTDate(ms: number): string {
+  return new Date(ms - BRT_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+function toBRTHour(ms: number): number {
+  return new Date(ms - BRT_OFFSET_MS).getUTCHours()
+}
+
 function norm(s: string): string {
   return s
     .normalize('NFD')
@@ -40,34 +51,44 @@ function norm(s: string): string {
 
 function extractHour(valor: string): number {
   if (!valor) return -1
-  // ISO datetime: 2024-01-15T10:30:00 or 2024-01-15 10:30:00
+  // ISO with explicit UTC (Z suffix) → convert to BRT
+  if (/Z$/.test(valor)) {
+    const d = new Date(valor)
+    if (!isNaN(d.getTime())) return toBRTHour(d.getTime())
+  }
+  // ISO datetime: 2024-01-15T10:30:00 or 2024-01-15 10:30:00 (assumed BRT)
   const isoTime = valor.match(/[\sT](\d{2}):\d{2}/)
   if (isoTime) return parseInt(isoTime[1]!, 10)
   // BR datetime: 15/01/2024 10:30
   const brTime = valor.match(/\d{2}\/\d{2}\/\d{4}[\sT](\d{2}):\d{2}/)
   if (brTime) return parseInt(brTime[1]!, 10)
-  // Unix timestamp
+  // Unix timestamp (UTC) → convert to BRT
   const ts = Number(valor)
   if (!isNaN(ts) && ts > 1_000_000_000) {
     const ms = ts < 1e12 ? ts * 1000 : ts
-    return new Date(ms).getHours()
+    return toBRTHour(ms)
   }
   return -1
 }
 
 function extractDate(valor: string): string {
   if (!valor) return ''
-  // ISO: 2024-01-15 or 2024-01-15T10:00:00
+  // ISO with explicit UTC (Z suffix) → convert to BRT before extracting date
+  if (/Z$/.test(valor)) {
+    const d = new Date(valor)
+    if (!isNaN(d.getTime())) return toBRTDate(d.getTime())
+  }
+  // ISO: 2024-01-15 or 2024-01-15T10:00:00 (no timezone = assumed BRT)
   const iso = valor.match(/(\d{4}-\d{2}-\d{2})/)
   if (iso) return iso[1]!
   // BR: 15/01/2024
   const br = valor.match(/(\d{2})\/(\d{2})\/(\d{4})/)
   if (br) return `${br[3]}-${br[2]}-${br[1]}`
-  // Unix timestamp (seconds or ms)
+  // Unix timestamp (UTC) → convert to BRT
   const ts = Number(valor)
   if (!isNaN(ts) && ts > 1_000_000_000) {
     const ms = ts < 1e12 ? ts * 1000 : ts
-    return new Date(ms).toISOString().slice(0, 10)
+    return toBRTDate(ms)
   }
   return ''
 }

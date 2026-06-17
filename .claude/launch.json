@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "../berry-sync-desk", "run", "dev"],
       "port": 8080
+    },
+    {
+      "name": "Berry Adaptive LP",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../financial-c-berry", "run", "dev"],
+      "port": 8080
     }
   ]
 }
