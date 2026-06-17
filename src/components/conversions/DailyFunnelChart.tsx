@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { yesterdayBRT } from '../../utils/dateBRT'
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import {
   ComposedChart,
@@ -105,10 +106,7 @@ export default function DailyFunnelChart({ dailyFunnel, filteredLeads }: Props) 
 
   // ── Trend: last 7 days vs previous 7 days ──
   const trend = useMemo(() => {
-    const yesterdayStr = (() => {
-      const d = new Date(); d.setDate(d.getDate() - 1)
-      return d.toISOString().slice(0, 10)
-    })()
+    const yesterdayStr = yesterdayBRT()
     const sortedDates = [...allDates].sort().filter((d) => d <= yesterdayStr)
     const last7 = sortedDates.slice(-7)
     const prev7 = sortedDates.slice(-14, -7)

@@ -18,16 +18,10 @@ import PacingSection from './PacingSection'
 import QualityMetricsSection from './QualityMetricsSection'
 import MultiSelect from './MultiSelect'
 import ExcludedCampaignsFilter from './ExcludedCampaignsFilter'
+import { currentMonthBRT } from '../../utils/dateBRT'
 
 function currentMonthRange() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
-  return {
-    from: `${y}-${m}-01`,
-    to: `${y}-${m}-${String(lastDay).padStart(2, '0')}`,
-  }
+  return currentMonthBRT()
 }
 
 interface Props {

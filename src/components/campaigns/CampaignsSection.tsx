@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { currentMonthBRT } from '../../utils/dateBRT'
 import { Users, TrendingUp } from 'lucide-react'
 import type { PageData } from '../../hooks/useDashboard'
 import {
@@ -33,16 +34,9 @@ export default function CampaignsSection({ pages }: Props) {
   const campaignCodes = useMemo(() => allUniqueCampaignCodes(allLeads), [allLeads])
   const pageOptions = useMemo(() => allUniquePages(allLeads), [allLeads])
 
-  // Filter state — default to current month
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  })
-  const [dateTo, setDateTo] = useState(() => {
-    const d = new Date()
-    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-    return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
-  })
+  // Filter state — default to current month (BRT)
+  const [dateFrom, setDateFrom] = useState(() => currentMonthBRT().from)
+  const [dateTo, setDateTo] = useState(() => currentMonthBRT().to)
   const [sourceFilter, setSourceFilter] = useState('')
   const [campaignCodeFilter, setCampaignCodeFilter] = useState('')
   const [adSetFilter, setAdSetFilter] = useState('')

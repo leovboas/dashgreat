@@ -103,8 +103,14 @@ const UTM_KEYS: Record<string, keyof ParsedLead> = {
 }
 
 const DATE_KEYS = new Set([
+  // Portuguese variations
   'data', 'datacriacao', 'dataconversao', 'datadeconversao', 'dataregistro',
-  'datahora', 'createdat', 'convertedat', 'date', 'timestamp',
+  'datahora', 'dataehora', 'horario', 'horariodeentrada', 'horariodeconversao',
+  'criadoem', 'convertidoem', 'cadastradoem', 'registradoem', 'entrada',
+  'datadeentrada', 'dataentrada', 'datadoevento', 'dataenvio',
+  // English variations
+  'createdat', 'convertedat', 'date', 'timestamp', 'submittedat', 'submitdate',
+  'eventdate', 'conversiondate', 'registeredat',
 ])
 
 const FAT_KEYS = new Set([
@@ -192,8 +198,10 @@ export function filterLeads(
   },
 ): ParsedLead[] {
   return leads.filter((l) => {
-    if (opts.dateFrom && l.date && l.date < opts.dateFrom) return false
-    if (opts.dateTo && l.date && l.date > opts.dateTo) return false
+    // Exclude undated leads when a date filter is active (prevents inflation across all ranges)
+    if ((opts.dateFrom || opts.dateTo) && !l.date) return false
+    if (opts.dateFrom && l.date < opts.dateFrom) return false
+    if (opts.dateTo && l.date > opts.dateTo) return false
     if (opts.utmSource && l.utmSource !== opts.utmSource) return false
     if (opts.campaignCode && l.campaign !== opts.campaignCode) return false
     if (opts.adSetCode && l.adSet !== opts.adSetCode) return false

@@ -11,24 +11,13 @@ import type { PageData } from '../../hooks/useDashboard'
 import MultiSelect from '../conversions/MultiSelect'
 import ExcludedCampaignsFilter from '../conversions/ExcludedCampaignsFilter'
 import LeadModal from './LeadModal'
+import { todayBRT, yesterdayBRT, daysAgoBRT } from '../../utils/dateBRT'
 
-// ── Date helpers ──
+// ── Date helpers (BRT-aware) ──
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function yesterdayStr() {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return d.toISOString().slice(0, 10)
-}
-
-function daysAgoStr(n: number) {
-  const d = new Date()
-  d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
-}
+const todayStr = todayBRT
+const yesterdayStr = yesterdayBRT
+function daysAgoStr(n: number) { return daysAgoBRT(n) }
 
 // ── Stage badge ──
 
