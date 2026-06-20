@@ -30,7 +30,21 @@
       "Bash(__NEW_LINE_99ff42fe7c16eecb__ grep:*)",
       "Bash(sed -i '' 's/border-t border-white\\\\/8 bg-\\\\[#05060A\\\\]/bg-[#05060A]/g' '/Users/uptalk/Desktop/Clientes/Berry/financial-c-berry/src/pages/PageDark.tsx')",
       "Bash(__NEW_LINE_a78d84b176a1340b__ sed:*)",
-      "Bash(__NEW_LINE_a78d84b176a1340b__ grep:*)"
+      "Bash(__NEW_LINE_a78d84b176a1340b__ grep:*)",
+      "Bash(\"/Users/uptalk/Desktop/Clientes/Berry/financial-c-berry/supabase/migrations/20240003_lp_rpc_functions.sql\":*)",
+      "Bash(\"/Users/uptalk/Desktop/Clientes/Berry/financial-c-berry/supabase/migrations/20240004_lp_integrations_vault.sql\":*)",
+      "Bash(\"/Users/uptalk/Desktop/Clientes/Berry/financial-c-berry/supabase/migrations/20240006_lp_conversion_log.sql\":*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(grep -n \"sha256\\\\|test.*pii\\\\|normaliz\" \"/Users/uptalk/Desktop/Clientes/Berry/financial-c-berry/src/lib/lp/__tests__/\"*)",
+      "Bash(head -15 grep -n \"lp_conversion_log\\\\|INSERT INTO\\\\|supabase.from\" supabase/functions/send-google-conversion/index.ts)",
+      "Bash(true __NEW_LINE_a963f8dd9e52acbf__ echo \"\" echo \"=== ITEM 5: event_id in tracking.ts and CAPI sync ===\" grep -n \"event_id\\\\|eventID\" src/services/tracking.ts __NEW_LINE_a963f8dd9e52acbf__ echo \"\" echo \"=== ITEM 7: gclid cookie persistence ===\" grep -rn \"cookie\\\\|localStorage\\\\|sessionStorage\" src/lib/lp/parseLpContext.ts)",
+      "Bash(npx vitest:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f.svg \\(primeiras 3 linhas\\) ===\")",
+      "Read(//Users/uptalk/Desktop/Clientes/Berry/financial-c-berry/src/assets/**)",
+      "Bash(done)",
+      "Bash(supabase functions:*)"
     ]
   }
 }
