@@ -156,7 +156,7 @@ export default function ConversionsSection({ pages }: Props) {
     [filteredWindsorRows, filteredEvents, activeChannels, selCampaigns, selAdSets, selAds, selPages, selRevenue, selSegments, onlyActive],
   )
 
-  const { totalSpend, funnelCounts, totalMRR, byChannel, byAd, dailySpend, dailyFunnel, investmentPartial, campaignStatuses } = metrics
+  const { totalSpend, funnelCounts, totalMRR, byChannel, byAd, byAdSet, dailySpend, dailyFunnel, investmentPartial, campaignStatuses } = metrics
 
   // GreatPages leads filtered by date + active filters
   const filteredLeadsList = useMemo(() => {
@@ -529,6 +529,7 @@ export default function ConversionsSection({ pages }: Props) {
 
           <AdTable
             byAd={byAd}
+            byAdSet={byAdSet}
             ceaConfig={ceaConfig}
             syncing={ceaSyncing}
             onSaveCeaConfig={saveCeaConfig}

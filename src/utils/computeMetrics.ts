@@ -37,6 +37,19 @@ export interface AdMetrics {
   status?: string
 }
 
+export interface AdSetMetrics {
+  adSet: string
+  adSetFullName?: string  // full Windsor adset_name
+  spend: number
+  mqls: number
+  sqls: number
+  opportunities: number
+  meetings: number
+  won: number
+  mrr: number
+  status?: string
+}
+
 export interface DailySpend {
   date: string
   [channel: string]: string | number
@@ -76,6 +89,7 @@ export interface MetricsResult {
   totalMRR: number
   byChannel: ChannelMetrics[]
   byAd: AdMetrics[]
+  byAdSet: AdSetMetrics[]
   dailySpend: DailySpend[]
   dailyFunnel: DailyFunnelPoint[]
   /** True when LP/Revenue/Segment filters are active without a campaign filter — Windsor spend is NOT narrowed */
@@ -84,6 +98,8 @@ export interface MetricsResult {
   campaignStatuses: Record<string, string>
   /** Most recent status per ad key (from all rows, pre-filter) */
   adStatuses: Record<string, string>
+  /** Most recent status per adset key (Meta only) */
+  adSetStatuses: Record<string, string>
 }
 
 // ── Helpers ──
@@ -244,6 +260,8 @@ export function computeMetrics(
   const campaignStatuses: Record<string, string> = {}
   const adStatusDate: Record<string, string> = {}
   const adStatuses: Record<string, string> = {}
+  const adSetStatusDate: Record<string, string> = {}
+  const adSetStatuses: Record<string, string> = {}
 
   for (const row of windsorRows) {
     if (!row.date) continue
@@ -259,6 +277,16 @@ export function computeMetrics(
       if (!adStatusDate[adKey] || row.date > adStatusDate[adKey]) {
         adStatusDate[adKey] = row.date
         adStatuses[adKey] = row.status
+      }
+    }
+    // adset status — Meta only
+    if (normalizeWindsorChannel(row.datasource, row.source) === 'Meta') {
+      const adSetKey = extractAdSetCode(row.adset_name ?? '')
+      if (adSetKey && row.status) {
+        if (!adSetStatusDate[adSetKey] || row.date > adSetStatusDate[adSetKey]) {
+          adSetStatusDate[adSetKey] = row.date
+          adSetStatuses[adSetKey] = row.status
+        }
       }
     }
   }
@@ -537,16 +565,89 @@ export function computeMetrics(
     status: adStatuses[ad],
   }))
 
+  // ── By-adset breakdown (Meta only) ──
+  const metaWindsor = filteredWindsor.filter(
+    (r) => normalizeWindsorChannel(r.datasource, r.source) === 'Meta',
+  )
+
+  const spendByAdSet: Record<string, number> = {}
+  const adSetFullNames: Record<string, string> = {}
+  for (const row of metaWindsor) {
+    const adSetKey = extractAdSetCode(row.adset_name ?? '')
+    if (!adSetKey) continue
+    spendByAdSet[adSetKey] = (spendByAdSet[adSetKey] ?? 0) + (Number(row.spend) || 0)
+    const rawName = (row.adset_name ?? '').trim()
+    if (rawName && (!adSetFullNames[adSetKey] || rawName.length > adSetFullNames[adSetKey].length)) {
+      adSetFullNames[adSetKey] = rawName
+    }
+  }
+  const adSetSpendKeys = new Set(Object.keys(spendByAdSet))
+
+  // deal → adset key (Meta events only)
+  const dealAdSet = new Map<string, string>()
+  for (const ev of channelFilteredEvents) {
+    if (!ev.deal_id || dealAdSet.has(ev.deal_id)) continue
+    if (dealChannels.get(ev.deal_id) !== 'Meta') continue
+    const { campaign, adSet } = evtCodes(ev)
+    const resolved =
+      (adSet && adSetSpendKeys.has(adSet) ? adSet : null) ??
+      (campaign && adSetSpendKeys.has(campaign) ? campaign : null) ??
+      (adSet || null)
+    if (resolved) dealAdSet.set(ev.deal_id, resolved)
+  }
+
+  const stageDealsByAdSet: Record<string, Record<string, Set<string>>> = {
+    mql: {}, sql: {}, opportunity: {}, meeting_completed: {}, deal_won: {},
+  }
+  const mrrByAdSet: Record<string, number> = {}
+
+  for (const ev of channelFilteredEvents) {
+    if (!ev.deal_id) continue
+    const adSet = dealAdSet.get(ev.deal_id)
+    if (!adSet) continue
+    if (stageDealsByAdSet[ev.event_type]) {
+      if (!stageDealsByAdSet[ev.event_type][adSet]) stageDealsByAdSet[ev.event_type][adSet] = new Set()
+      stageDealsByAdSet[ev.event_type][adSet].add(ev.deal_id)
+    }
+    if (ev.event_type === 'deal_won') {
+      mrrByAdSet[adSet] = (mrrByAdSet[adSet] ?? 0) + (dealMRR.get(ev.deal_id) ?? 0)
+    }
+  }
+
+  const allAdSets = new Set([
+    ...Object.keys(spendByAdSet),
+    ...Object.keys(stageDealsByAdSet.mql),
+    ...Object.keys(stageDealsByAdSet.sql),
+    ...Object.keys(stageDealsByAdSet.opportunity),
+    ...Object.keys(stageDealsByAdSet.meeting_completed),
+    ...Object.keys(stageDealsByAdSet.deal_won),
+  ])
+
+  const byAdSet: AdSetMetrics[] = [...allAdSets].sort().map((adSet) => ({
+    adSet,
+    adSetFullName: adSetFullNames[adSet],
+    spend: spendByAdSet[adSet] ?? 0,
+    mqls: stageDealsByAdSet.mql[adSet]?.size ?? 0,
+    sqls: stageDealsByAdSet.sql[adSet]?.size ?? 0,
+    opportunities: stageDealsByAdSet.opportunity[adSet]?.size ?? 0,
+    meetings: stageDealsByAdSet.meeting_completed[adSet]?.size ?? 0,
+    won: stageDealsByAdSet.deal_won[adSet]?.size ?? 0,
+    mrr: mrrByAdSet[adSet] ?? 0,
+    status: adSetStatuses[adSet],
+  }))
+
   return {
     totalSpend,
     funnelCounts,
     totalMRR,
     byChannel: byChannelFiltered,
     byAd,
+    byAdSet,
     dailySpend,
     dailyFunnel,
     investmentPartial,
     campaignStatuses,
     adStatuses,
+    adSetStatuses,
   }
 }
