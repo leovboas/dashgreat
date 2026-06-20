@@ -1,4 +1,12 @@
-import type { AdMetrics } from './computeMetrics'
+/** Minimal shape required for CEA computation — satisfied by both AdMetrics and AdSetMetrics */
+export interface CeaInput {
+  spend: number
+  mqls: number
+  sqls: number
+  meetings: number
+  won: number
+  mrr: number
+}
 
 export interface CeaConfig {
   cpa_mql_teto: number       // max CPA MQL (R$) — default 500
@@ -36,7 +44,7 @@ export interface CeaStatus {
   ticket: number | null
 }
 
-export function computeCEAStatus(ad: AdMetrics, config: CeaConfig): CeaStatus | null {
+export function computeCEAStatus(ad: CeaInput, config: CeaConfig): CeaStatus | null {
   // No spend = no badge
   if (ad.spend === 0) return null
 

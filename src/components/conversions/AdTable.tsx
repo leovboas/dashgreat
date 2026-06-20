@@ -92,6 +92,7 @@ const COL_KEYS_ADSET: { label: string; key: SortKey | null }[] = [
   { label: 'CPA', key: 'cpa' },
   { label: 'MRR', key: 'mrr' },
   { label: 'Ticket Médio', key: 'ticket' },
+  { label: 'Status CEA', key: null },
 ]
 
 type BadgeType = 'green' | 'yellow' | 'orange' | 'red' | 'gray'
@@ -243,16 +244,14 @@ export default function AdTable({
               </span>
             </button>
           </div>
-          {activeTab === 'ads' && (
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#0D2F9F] hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors"
-              title="Configurar parâmetros CEA"
-            >
-              <Settings size={13} />
-              <span className="hidden sm:inline">Config. CEA</span>
-            </button>
-          )}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#0D2F9F] hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors"
+            title="Configurar parâmetros CEA"
+          >
+            <Settings size={13} />
+            <span className="hidden sm:inline">Config. CEA</span>
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -359,6 +358,7 @@ export default function AdTable({
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {adSetRows.map((r) => {
+                  const ceaStatus = computeCEAStatus(r, ceaConfig)
                   const MAX_LEN = 50
                   const display = r.adSetFullName ?? r.adSet
                   const truncated = display.length > MAX_LEN ? display.slice(0, MAX_LEN) + '…' : display
@@ -388,6 +388,7 @@ export default function AdTable({
                       <td className="px-3 py-2.5 text-right text-gray-500 text-xs">{ratio(r.spend, r.won)}</td>
                       <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(r.mrr)}</td>
                       <td className="px-3 py-2.5 text-right text-[#1a1a1a] font-medium text-xs">{ticketMedio(r.mrr, r.won)}</td>
+                      <td className="px-3 py-2.5 text-center"><CeaBadge status={ceaStatus} /></td>
                     </tr>
                   )
                 })}
@@ -405,6 +406,7 @@ export default function AdTable({
                   <td className="px-3 py-2.5 text-right text-gray-500 text-xs">{ratio(adSetTotal.spend, adSetTotal.won)}</td>
                   <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(adSetTotal.mrr)}</td>
                   <td className="px-3 py-2.5 text-right text-[#1a1a1a] font-medium text-xs">{ticketMedio(adSetTotal.mrr, adSetTotal.won)}</td>
+                  <td className="px-3 py-2.5 text-center" />
                 </tr>
               </tbody>
             </table>
