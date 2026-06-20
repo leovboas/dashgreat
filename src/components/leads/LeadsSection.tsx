@@ -284,61 +284,51 @@ export default function LeadsSection({ pages }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Date picker + quick shortcuts */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 font-medium">De</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:border-[#0D2F9F]"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 font-medium">Até</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:border-[#0D2F9F]"
-            />
-          </div>
-
-          {/* Quick shortcuts */}
-          <div className="flex flex-wrap items-center gap-1.5 ml-1">
-            {getDatePresets().map(({ label, from, to }) => {
-              const isActive = dateFrom === from && dateTo === to
-              return (
-                <button
-                  key={label}
-                  onClick={() => setQuickDate(from, to)}
-                  className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
-                    isActive
-                      ? 'border-[#0D2F9F] bg-blue-50 text-[#0D2F9F] font-medium'
-                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
+      {/* Filters */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex flex-col gap-2.5">
+        {/* Row 1: Período */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium shrink-0">Período</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] focus:border-transparent"
+          />
+          <span className="text-xs text-gray-400">até</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] focus:border-transparent"
+          />
+          <div className="w-px h-4 bg-gray-200 hidden sm:block" />
+          {getDatePresets().map(({ label, from, to }) => (
+            <button
+              key={label}
+              onClick={() => setQuickDate(from, to)}
+              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
+                dateFrom === from && dateTo === to
+                  ? 'border-[#0D2F9F] bg-blue-50 text-[#0D2F9F] font-medium'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="ml-auto shrink-0">
             <button
               onClick={reload}
               disabled={loading}
-              className="flex items-center gap-1.5 text-xs text-[#0D2F9F] hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-sm text-[#0D2F9F] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
             >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-              Atualizar
+              <span className="hidden sm:inline">Atualizar</span>
             </button>
           </div>
         </div>
 
-        {/* Filters row */}
+        {/* Row 2: Segmentação */}
         <div className="flex flex-wrap items-center gap-2">
           <MultiSelect
             label="Canal"
@@ -346,6 +336,7 @@ export default function LeadsSection({ pages }: Props) {
             selected={selChannels}
             onChange={setSelChannels}
           />
+          <div className="w-px h-4 bg-gray-200 hidden sm:block" />
           <MultiSelect
             label="Campanha"
             options={filterOptions.campaigns}
@@ -387,6 +378,7 @@ export default function LeadsSection({ pages }: Props) {
             selected={selSegments}
             onChange={setSelSegments}
           />
+          <div className="w-px h-4 bg-gray-200 hidden sm:block" />
           <ExcludedCampaignsFilter
             allCampaigns={allWindsorCampaigns}
             excluded={excludedCampaigns}

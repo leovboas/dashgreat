@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Target } from 'lucide-react'
 import type { FunnelCounts } from '../../hooks/useConversionsData'
 import type { ChannelMetrics } from '../../utils/computeMetrics'
+import type { GoalsConfig } from '../../utils/goals'
+import { todayBRT } from '../../utils/dateBRT'
 
 function fmt(n: number) {
   return n.toLocaleString('pt-BR')
@@ -15,7 +17,6 @@ function pct(a: number, b: number): string {
   if (b === 0) return '—'
   return ((a / b) * 100).toFixed(1) + '%'
 }
-
 
 function pacingColor(ritmo: number): string {
   if (ritmo === 0) return 'text-gray-400'
@@ -33,6 +34,29 @@ function Skeleton({ wide = false }: { wide?: boolean }) {
   )
 }
 
+function GoalBadge({ value, goal, pacingFactor }: { value: number; goal: number; pacingFactor: number }) {
+  if (goal <= 0) return null
+  const accGoal = goal * pacingFactor
+  const ratio = accGoal > 0 ? value / accGoal : 0
+  const pctStr = (ratio * 100).toFixed(0) + '%'
+  const color =
+    ratio >= 1 ? 'text-emerald-600' :
+    ratio >= 0.7 ? 'text-amber-500' :
+    'text-red-500'
+  const bg =
+    ratio >= 1 ? 'bg-emerald-50' :
+    ratio >= 0.7 ? 'bg-amber-50' :
+    'bg-red-50'
+  return (
+    <span
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md whitespace-nowrap ${color} ${bg}`}
+      title={`Meta mensal: ${fmt(goal)}`}
+    >
+      {fmt(value)}/{fmt(Math.round(accGoal))} ({pctStr})
+    </span>
+  )
+}
+
 interface Props {
   totalSpend: number
   totalLeads: number
@@ -43,61 +67,79 @@ interface Props {
   pacingDeveria?: number | null
   pacingBudget?: number
   byChannel?: ChannelMetrics[]
-  /** Windsor + Supabase still loading */
+  goals?: GoalsConfig
   loading?: boolean
-  /** GreatPages leads still loading */
   loadingLeads?: boolean
+  onOpenGoals?: () => void
 }
 
 export default function KPICards({
   totalSpend, totalLeads, funnel, totalMRR, cpl, cpa,
   pacingDeveria, pacingBudget, byChannel = [],
-  loading = false, loadingLeads = false,
+  goals, loading = false, loadingLeads = false,
+  onOpenGoals,
 }: Props) {
   const [metaTooltip, setMetaTooltip] = useState(false)
   const ticketMedio = funnel.won > 0 ? totalMRR / funnel.won : null
   const ritmo = pacingDeveria && pacingDeveria > 0 ? (totalSpend / pacingDeveria) * 100 : null
 
+  const goalPacingFactor = (() => {
+    const today = todayBRT()
+    const parts = today.split('-').map(Number)
+    const year = parts[0]!, month = parts[1]!, day = parts[2]!
+    const totalDays = new Date(year, month, 0).getDate()
+    return Math.min(day / totalDays, 1)
+  })()
+
   const stages = [
-    { label: 'Leads',        value: totalLeads,        loadingState: loadingLeads },
-    { label: 'MQLs',         value: funnel.mql,        loadingState: loading },
-    { label: 'SQLs',         value: funnel.sql,        loadingState: loading },
-    { label: 'Oportunidades',value: funnel.opportunity, loadingState: loading },
-    { label: 'Reuniões',     value: funnel.meeting,    loadingState: loading },
-    { label: 'Ganhos',       value: funnel.won,        loadingState: loading },
+    { label: 'Leads',         value: totalLeads,         loadingState: loadingLeads, goalKey: null as keyof GoalsConfig | null },
+    { label: 'MQLs',          value: funnel.mql,         loadingState: loading,      goalKey: 'mqls' as keyof GoalsConfig },
+    { label: 'SQLs',          value: funnel.sql,         loadingState: loading,      goalKey: 'sqls' as keyof GoalsConfig },
+    { label: 'Oportunidades', value: funnel.opportunity, loadingState: loading,      goalKey: 'opportunities' as keyof GoalsConfig },
+    { label: 'Reuniões',      value: funnel.meeting,     loadingState: loading,      goalKey: 'meetings' as keyof GoalsConfig },
+    { label: 'Ganhos',        value: funnel.won,         loadingState: loading,      goalKey: 'won' as keyof GoalsConfig },
   ]
+
+  const cpmqlGoal = goals?.cpmql ?? 0
+  const cpmqlOk = cpmqlGoal > 0 && cpl !== null ? cpl <= cpmqlGoal : null
+  const cpmqlDelta = cpmqlGoal > 0 && cpl !== null
+    ? ((cpl / cpmqlGoal - 1) * 100)
+    : null
+
+  const metaSpend = byChannel.find((c) => c.channel === 'Meta')?.spend ?? 0
+  const googleSpend = byChannel.find((c) => c.channel === 'Google')?.spend ?? 0
+  const metaTax = metaSpend * 0.14
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Row 1: Financial KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {/* Investimento with pacing */}
-        {(() => {
-          const metaSpend = byChannel.find((c) => c.channel === 'Meta')?.spend ?? 0
-          const googleSpend = byChannel.find((c) => c.channel === 'Google')?.spend ?? 0
-          const metaTax = metaSpend * 0.14
-          return (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
+
+      {/* Row 1: Two grouped sections */}
+      <div className="flex gap-3 items-stretch">
+
+        {/* ── CUSTO ── */}
+        <div className="flex flex-col gap-2 shrink-0">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-1">Custo</span>
+          <div className="flex gap-3 flex-1">
+
+            {/* Investimento Total */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1 min-w-[190px]">
               <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Investimento Total</span>
               {loading ? <Skeleton wide /> : (
                 <span className="text-2xl font-bold text-[#1a1a1a]">{fmtBRL(totalSpend)}</span>
               )}
               {!loading && (
                 <>
-                  {/* Channel breakdown */}
                   <div className="flex flex-col gap-0.5 mt-1 border-t border-gray-50 pt-1.5">
-                    {/* Google */}
                     {googleSpend > 0 && (
-                      <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-xs text-gray-400">Google Ads</span>
                         <span className="text-xs font-medium text-gray-700">{fmtBRL(googleSpend)}</span>
                       </div>
                     )}
-                    {/* Meta with tooltip */}
                     {metaSpend > 0 && (
                       <div className="relative">
                         <div
-                          className="flex items-center justify-between gap-1 cursor-help"
+                          className="flex items-center justify-between gap-3 cursor-help"
                           onMouseEnter={() => setMetaTooltip(true)}
                           onMouseLeave={() => setMetaTooltip(false)}
                         >
@@ -113,81 +155,130 @@ export default function KPICards({
                       </div>
                     )}
                   </div>
-                  {/* Pacing */}
                   {pacingBudget && pacingBudget > 0 && pacingDeveria != null ? (
                     <div className="flex flex-col gap-0.5 mt-0.5">
                       <span className="text-xs text-gray-400">
                         Deveríamos: <span className="font-medium text-gray-600">{fmtBRL(pacingDeveria)}</span>
                       </span>
                       {ritmo !== null && (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pacingColor(ritmo)} ${pacingBg(ritmo)}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full self-start ${pacingColor(ritmo)} ${pacingBg(ritmo)}`}>
                           Ritmo: {ritmo.toFixed(1)}%
                         </span>
                       )}
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-300">Configure verba no Pacing ↓</span>
+                    <span className="text-xs text-gray-300 mt-0.5">Configure verba no Pacing ↓</span>
                   )}
                 </>
               )}
             </div>
-          )
-        })()}
 
-        {/* CPA */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">CPA</span>
-          {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{cpa !== null ? fmtBRL(cpa) : '—'}</span>}
-          <span className="text-xs text-gray-400">Invest. ÷ Vendas</span>
+            {/* CPMQL */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1 min-w-[150px]">
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">CPMQL</span>
+              {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{cpl !== null ? fmtBRL(cpl) : '—'}</span>}
+              <span className="text-xs text-gray-400">Invest. ÷ MQLs</span>
+              {!loading && cpmqlGoal > 0 && cpl !== null && cpmqlDelta !== null && (
+                <span
+                  title={`Meta: ${fmtBRL(cpmqlGoal)}`}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 self-start ${
+                    cpmqlOk ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                  }`}
+                >
+                  {cpmqlDelta >= 0 ? '+' : ''}{cpmqlDelta.toFixed(1)}% da meta
+                </span>
+              )}
+            </div>
+
+          </div>
         </div>
 
-        {/* MRR */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">MRR Total</span>
-          {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{fmtBRL(totalMRR)}</span>}
+        {/* Vertical divider */}
+        <div className="w-px bg-gray-200 mt-5 self-stretch" />
+
+        {/* ── RESULTADO ── */}
+        <div className="flex flex-col gap-2 flex-1">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-1">Resultado</span>
+          <div className="flex gap-3 flex-1">
+
+            {/* MRR */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1 flex-1">
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">MRR Total</span>
+              {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{fmtBRL(totalMRR)}</span>}
+              <span className="text-xs text-gray-400">Receita recorrente mensal</span>
+            </div>
+
+            {/* Ticket Médio */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1 flex-1">
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ticket Médio</span>
+              {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{ticketMedio !== null ? fmtBRL(ticketMedio) : '—'}</span>}
+              <span className="text-xs text-gray-400">MRR ÷ Vendas</span>
+            </div>
+
+            {/* CPA */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1 flex-1">
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">CPA</span>
+              {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{cpa !== null ? fmtBRL(cpa) : '—'}</span>}
+              <span className="text-xs text-gray-400">Invest. ÷ Vendas</span>
+              {!loading && cpa !== null && ticketMedio !== null && ticketMedio > 0 && (
+                <span className="text-[10px] text-gray-500 font-medium mt-0.5">
+                  {(cpa / ticketMedio).toFixed(2)}× Ticket Médio
+                </span>
+              )}
+            </div>
+
+          </div>
         </div>
 
-        {/* Ticket Médio */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Ticket Médio</span>
-          {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{ticketMedio !== null ? fmtBRL(ticketMedio) : '—'}</span>}
-          <span className="text-xs text-gray-400">MRR ÷ Vendas</span>
-        </div>
-
-        {/* CPMQL */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-1">
-          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">CPMQL Geral</span>
-          {loading ? <Skeleton /> : <span className="text-2xl font-bold text-[#1a1a1a]">{cpl !== null ? fmtBRL(cpl) : '—'}</span>}
-          <span className="text-xs text-gray-400">Invest. ÷ MQLs</span>
-        </div>
       </div>
 
       {/* Row 2: Funnel pipeline */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center w-full">
-          {stages.map((stage, i) => (
-            <div key={stage.label} className="flex items-center flex-1">
-              {i > 0 && (
-                <div className="flex flex-col items-center shrink-0 px-1">
-                  <span className="text-xs font-semibold text-gray-400 whitespace-nowrap">
-                    {(loading || stages[i - 1].loadingState || stage.loadingState) ? '...' : pct(stage.value, stages[i - 1].value)}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Funil de Conversão</span>
+          {onOpenGoals && (
+            <button
+              onClick={onOpenGoals}
+              className="flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-[#0D2F9F] hover:bg-blue-50 px-2.5 py-1 rounded-lg transition-colors border border-transparent hover:border-blue-100"
+              title="Configurar metas"
+            >
+              <Target size={11} />
+              <span>Metas</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-start w-full">
+          {stages.map((stage, i) => {
+            const goal = stage.goalKey && goals ? (goals[stage.goalKey] as number) : 0
+            return (
+              <div key={stage.label} className="flex items-start flex-1">
+                {i > 0 && (
+                  <div className="flex flex-col items-center shrink-0 px-1 pt-4">
+                    <span className="text-[11px] font-semibold text-gray-400 whitespace-nowrap">
+                      {(loading || stages[i - 1].loadingState || stage.loadingState) ? '…' : pct(stage.value, stages[i - 1].value)}
+                    </span>
+                    <ArrowRight size={13} className="text-gray-300 mt-0.5" />
+                  </div>
+                )}
+                <div className="flex flex-col items-center text-center flex-1 min-w-0 gap-1">
+                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest whitespace-nowrap">
+                    {stage.label}
                   </span>
-                  <ArrowRight size={14} className="text-gray-300 mt-0.5" />
+                  {stage.loadingState
+                    ? <div className="h-8 w-10 bg-gray-100 rounded-lg animate-pulse" />
+                    : <span className="text-2xl font-bold text-[#1a1a1a] leading-none">{fmt(stage.value)}</span>
+                  }
+                  {!stage.loadingState && goal > 0 && (
+                    <GoalBadge value={stage.value} goal={goal} pacingFactor={goalPacingFactor} />
+                  )}
                 </div>
-              )}
-              <div className="flex flex-col items-center text-center flex-1 min-w-0">
-                <span className="text-xs text-gray-400 font-medium uppercase tracking-wide whitespace-nowrap mb-1">
-                  {stage.label}
-                </span>
-                {stage.loadingState
-                  ? <div className="h-8 w-10 bg-gray-100 rounded-lg animate-pulse" />
-                  : <span className="text-2xl font-bold text-[#1a1a1a]">{fmt(stage.value)}</span>
-                }
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
+
     </div>
   )
 }

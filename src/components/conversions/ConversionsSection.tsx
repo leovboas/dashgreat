@@ -7,6 +7,8 @@ import { computeMetrics, extractFilterOptions } from '../../utils/computeMetrics
 import type { PageData } from '../../hooks/useDashboard'
 import { useCeaConfig } from '../../hooks/useCeaConfig'
 import { useExcludedCampaigns } from '../../hooks/useExcludedCampaigns'
+import { useGoalsConfig } from '../../hooks/useGoalsConfig'
+import GoalsDrawer from './GoalsDrawer'
 import KPICards from './KPICards'
 import FunnelChart from './FunnelChart'
 import DailyLeadsChart from './DailyLeadsChart'
@@ -45,9 +47,11 @@ export default function ConversionsSection({ pages }: Props) {
   const [onlyActive, setOnlyActive] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
 
-  // CEA config + excluded campaigns (Supabase-persisted)
+  // CEA config + excluded campaigns + goals (Supabase-persisted)
   const { config: ceaConfig, saveConfig: saveCeaConfig, syncing: ceaSyncing } = useCeaConfig()
   const { excluded: excludedCampaigns, updateExcluded: setExcludedCampaigns } = useExcludedCampaigns()
+  const { goals, saveGoals, syncing: goalsSyncing } = useGoalsConfig()
+  const [goalsDrawerOpen, setGoalsDrawerOpen] = useState(false)
 
   // Fetch raw data
   const { loading, error, rawWindsorRows, rawEvents, reload } = useConversionsData(dateFrom, dateTo)
@@ -156,7 +160,7 @@ export default function ConversionsSection({ pages }: Props) {
     [filteredWindsorRows, filteredEvents, activeChannels, selCampaigns, selAdSets, selAds, selPages, selRevenue, selSegments, onlyActive],
   )
 
-  const { totalSpend, funnelCounts, totalMRR, byChannel, byAd, byAdSet, dailySpend, dailyFunnel, investmentPartial, campaignStatuses } = metrics
+  const { totalSpend, funnelCounts, totalMRR, byChannel, byAd, byAdSet, byCampaign, dailySpend, dailyFunnel, investmentPartial, campaignStatuses } = metrics
 
   // GreatPages leads filtered by date + active filters
   const filteredLeadsList = useMemo(() => {
@@ -313,74 +317,39 @@ export default function ConversionsSection({ pages }: Props) {
 
         {/* Collapsible body */}
         {filtersOpen && (
-          <div className="px-4 pb-4 flex flex-col gap-3 border-t border-gray-100">
-            {/* Row 1: Period + Channel + Refresh */}
-            <div className="flex flex-wrap items-center gap-4 pt-3">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-400 font-medium">Período</span>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] focus:border-transparent"
-                  />
-                  <span className="text-xs text-gray-400">até</span>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    min={dateFrom}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] focus:border-transparent"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {getDatePresets().map(({ label, from, to }) => (
-                    <button
-                      key={label}
-                      onClick={() => { setDateFrom(from); setDateTo(to) }}
-                      className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
-                        dateFrom === from && dateTo === to
-                          ? 'border-[#0D2F9F] bg-blue-50 text-[#0D2F9F] font-medium'
-                          : 'border-gray-200 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs text-gray-400 font-medium mr-1">Canal</span>
+          <div className="px-4 pb-4 flex flex-col gap-2.5 border-t border-gray-100">
+            {/* Row 1: Período — inputs + presets + Refresh */}
+            <div className="flex flex-wrap items-center gap-2 pt-3">
+              <span className="text-xs text-gray-400 font-medium shrink-0">Período</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] focus:border-transparent"
+              />
+              <span className="text-xs text-gray-400">até</span>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D2F9F] focus:border-transparent"
+              />
+              <div className="w-px h-4 bg-gray-200 hidden sm:block" />
+              {getDatePresets().map(({ label, from, to }) => (
                 <button
-                  onClick={(e) => { e.stopPropagation(); setActiveChannels([]) }}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    activeChannels.length === 0
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  key={label}
+                  onClick={() => { setDateFrom(from); setDateTo(to) }}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
+                    dateFrom === from && dateTo === to
+                      ? 'border-[#0D2F9F] bg-blue-50 text-[#0D2F9F] font-medium'
+                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
-                  Todos
+                  {label}
                 </button>
-                {CHANNELS.map((ch) => (
-                  <button
-                    key={ch}
-                    onClick={(e) => { e.stopPropagation(); toggleChannel(ch) }}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      activeChannels.includes(ch)
-                        ? 'bg-[#0D2F9F] text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {ch}
-                  </button>
-                ))}
-              </div>
-
-              <div className="ml-auto">
+              ))}
+              <div className="ml-auto shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); reload() }}
                   disabled={loading}
@@ -392,9 +361,35 @@ export default function ConversionsSection({ pages }: Props) {
               </div>
             </div>
 
-            {/* Row 2: Strategic filters */}
+            {/* Row 2: Canal + Segmentação + Exclusões */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-gray-400 font-medium mr-1">Filtros</span>
+              <span className="text-xs text-gray-400 font-medium shrink-0">Canal</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveChannels([]) }}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  activeChannels.length === 0
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Todos
+              </button>
+              {CHANNELS.map((ch) => (
+                <button
+                  key={ch}
+                  onClick={(e) => { e.stopPropagation(); toggleChannel(ch) }}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    activeChannels.includes(ch)
+                      ? 'bg-[#0D2F9F] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {ch}
+                </button>
+              ))}
+
+              <div className="w-px h-4 bg-gray-200 mx-0.5 hidden sm:block" />
+
               <MultiSelect
                 label="Campanha"
                 options={filterOptions.campaigns}
@@ -440,18 +435,14 @@ export default function ConversionsSection({ pages }: Props) {
                 disabled={filterOptions.segments.length === 0}
               />
 
-              <div className="w-px h-4 bg-gray-200 mx-1 hidden sm:block" />
+              <div className="w-px h-4 bg-gray-200 mx-0.5 hidden sm:block" />
 
-              {/* Excluded campaigns */}
               <ExcludedCampaignsFilter
                 allCampaigns={allWindsorCampaigns}
                 excluded={excludedCampaigns}
                 onChange={setExcludedCampaigns}
               />
 
-              <div className="w-px h-4 bg-gray-200 mx-1 hidden sm:block" />
-
-              {/* Apenas ativos toggle */}
               <button
                 onClick={(e) => { e.stopPropagation(); setOnlyActive((v) => !v) }}
                 className={`flex items-center gap-1.5 text-xs border rounded-lg px-2.5 py-1.5 whitespace-nowrap transition-colors ${
@@ -513,8 +504,10 @@ export default function ConversionsSection({ pages }: Props) {
             pacingDeveria={pacingDeveria}
             pacingBudget={pacingBudget}
             byChannel={byChannel}
+            goals={goals}
             loading={loading}
             loadingLeads={pages.some((p) => p.loadingLeads)}
+            onOpenGoals={() => setGoalsDrawerOpen(true)}
           />
 
           <DailyLeadsChart filteredLeads={filteredLeadsList} />
@@ -530,6 +523,7 @@ export default function ConversionsSection({ pages }: Props) {
           <AdTable
             byAd={byAd}
             byAdSet={byAdSet}
+            byCampaign={byCampaign}
             ceaConfig={ceaConfig}
             syncing={ceaSyncing}
             onSaveCeaConfig={saveCeaConfig}
@@ -555,6 +549,15 @@ export default function ConversionsSection({ pages }: Props) {
 
           <PacingSection byChannel={byChannel} dateFrom={dateFrom} dateTo={dateTo} />
         </>
+      )}
+
+      {goalsDrawerOpen && (
+        <GoalsDrawer
+          goals={goals}
+          syncing={goalsSyncing}
+          onSave={(g) => { saveGoals(g); setGoalsDrawerOpen(false) }}
+          onClose={() => setGoalsDrawerOpen(false)}
+        />
       )}
     </div>
   )

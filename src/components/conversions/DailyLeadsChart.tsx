@@ -23,7 +23,7 @@ function fmtDate(d: string) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
+  if (!active || !payload?.length || !label) return null
   return (
     <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
       <p className="text-gray-500 font-medium mb-1">{fmtDate(label)}</p>

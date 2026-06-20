@@ -50,6 +50,19 @@ export interface AdSetMetrics {
   status?: string
 }
 
+export interface CampaignMetrics {
+  campaign: string
+  campaignFullName?: string  // full Windsor campaign name
+  spend: number
+  mqls: number
+  sqls: number
+  opportunities: number
+  meetings: number
+  won: number
+  mrr: number
+  status?: string
+}
+
 export interface DailySpend {
   date: string
   [channel: string]: string | number
@@ -90,6 +103,7 @@ export interface MetricsResult {
   byChannel: ChannelMetrics[]
   byAd: AdMetrics[]
   byAdSet: AdSetMetrics[]
+  byCampaign: CampaignMetrics[]
   dailySpend: DailySpend[]
   dailyFunnel: DailyFunnelPoint[]
   /** True when LP/Revenue/Segment filters are active without a campaign filter — Windsor spend is NOT narrowed */
@@ -636,6 +650,69 @@ export function computeMetrics(
     status: adSetStatuses[adSet],
   }))
 
+  // ── By-campaign breakdown (all channels) ──
+  const spendByCampaign: Record<string, number> = {}
+  const campaignFullNames: Record<string, string> = {}
+  for (const row of filteredWindsor) {
+    const cc = extractCampaignCode(row.campaign ?? '')
+    if (!cc) continue
+    spendByCampaign[cc] = (spendByCampaign[cc] ?? 0) + (Number(row.spend) || 0)
+    const rawName = (row.campaign ?? '').trim()
+    if (rawName && (!campaignFullNames[cc] || rawName.length > campaignFullNames[cc].length)) {
+      campaignFullNames[cc] = rawName
+    }
+  }
+  const campaignSpendKeys = new Set(Object.keys(spendByCampaign))
+
+  const dealCampaign = new Map<string, string>()
+  for (const ev of channelFilteredEvents) {
+    if (!ev.deal_id || dealCampaign.has(ev.deal_id)) continue
+    const { campaign } = evtCodes(ev)
+    if (campaign && (campaignSpendKeys.has(campaign) || campaign)) {
+      dealCampaign.set(ev.deal_id, campaign)
+    }
+  }
+
+  const stageDealsByCampaign: Record<string, Record<string, Set<string>>> = {
+    mql: {}, sql: {}, opportunity: {}, meeting_completed: {}, deal_won: {},
+  }
+  const mrrByCampaign: Record<string, number> = {}
+
+  for (const ev of channelFilteredEvents) {
+    if (!ev.deal_id) continue
+    const campaign = dealCampaign.get(ev.deal_id)
+    if (!campaign) continue
+    if (stageDealsByCampaign[ev.event_type]) {
+      if (!stageDealsByCampaign[ev.event_type][campaign]) stageDealsByCampaign[ev.event_type][campaign] = new Set()
+      stageDealsByCampaign[ev.event_type][campaign].add(ev.deal_id)
+    }
+    if (ev.event_type === 'deal_won') {
+      mrrByCampaign[campaign] = (mrrByCampaign[campaign] ?? 0) + (dealMRR.get(ev.deal_id) ?? 0)
+    }
+  }
+
+  const allCampaignKeys = new Set([
+    ...Object.keys(spendByCampaign),
+    ...Object.keys(stageDealsByCampaign.mql),
+    ...Object.keys(stageDealsByCampaign.sql),
+    ...Object.keys(stageDealsByCampaign.opportunity),
+    ...Object.keys(stageDealsByCampaign.meeting_completed),
+    ...Object.keys(stageDealsByCampaign.deal_won),
+  ])
+
+  const byCampaign: CampaignMetrics[] = [...allCampaignKeys].sort().map((campaign) => ({
+    campaign,
+    campaignFullName: campaignFullNames[campaign],
+    spend: spendByCampaign[campaign] ?? 0,
+    mqls: stageDealsByCampaign.mql[campaign]?.size ?? 0,
+    sqls: stageDealsByCampaign.sql[campaign]?.size ?? 0,
+    opportunities: stageDealsByCampaign.opportunity[campaign]?.size ?? 0,
+    meetings: stageDealsByCampaign.meeting_completed[campaign]?.size ?? 0,
+    won: stageDealsByCampaign.deal_won[campaign]?.size ?? 0,
+    mrr: mrrByCampaign[campaign] ?? 0,
+    status: campaignStatuses[campaign],
+  }))
+
   return {
     totalSpend,
     funnelCounts,
@@ -643,6 +720,7 @@ export function computeMetrics(
     byChannel: byChannelFiltered,
     byAd,
     byAdSet,
+    byCampaign,
     dailySpend,
     dailyFunnel,
     investmentPartial,
