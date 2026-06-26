@@ -126,7 +126,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/berry-logo.png" alt="Berry" className="h-8 w-auto object-contain" />
             <span className="text-[10px] text-gray-400 font-medium tracking-wide">Controle Geral Performance Berry - Consultoria</span>
@@ -171,7 +171,7 @@ export default function App() {
 
         {/* Tab bar */}
         {pages.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 border-t border-gray-100">
+          <div className="px-4 sm:px-6 flex gap-1 border-t border-gray-100">
             <TabButton active={activeTab === 'conversions'} onClick={() => setActiveTab('conversions')}>
               Conversões
             </TabButton>
@@ -192,7 +192,7 @@ export default function App() {
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+      <main className="px-4 sm:px-6 py-6 flex flex-col gap-6">
         {/* Error banner */}
         {error && (
           <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
