@@ -23,11 +23,12 @@ function ticketMedio(mrr: number, won: number): string {
   return (mrr / won).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 }
 
-type SortKey = 'spend' | 'mqls' | 'cpmql' | 'sqls' | 'cpsql' | 'opportunities' | 'meetings' | 'won' | 'cpa' | 'mrr' | 'ticket'
+type SortKey = 'spend' | 'activeSpend' | 'mqls' | 'cpmql' | 'sqls' | 'cpsql' | 'opportunities' | 'meetings' | 'won' | 'cpa' | 'mrr' | 'ticket'
 
 function sortVal(r: ChannelMetrics, key: SortKey): number {
   switch (key) {
     case 'spend': return r.spend
+    case 'activeSpend': return r.activeSpend
     case 'mqls': return r.mqls
     case 'cpmql': return r.mqls > 0 ? r.spend / r.mqls : 0
     case 'sqls': return r.sqls
@@ -44,6 +45,7 @@ function sortVal(r: ChannelMetrics, key: SortKey): number {
 const COL_KEYS: { label: string; key: SortKey | null }[] = [
   { label: 'Canal', key: null },
   { label: 'Investimento', key: 'spend' },
+  { label: 'Inv. Ativo', key: 'activeSpend' },
   { label: 'MQLs', key: 'mqls' },
   { label: 'CPMQL', key: 'cpmql' },
   { label: 'SQLs', key: 'sqls' },
@@ -85,6 +87,7 @@ export default function ChannelTable({ byChannel, activeChannels }: Props) {
     (acc, r) => ({
       channel: 'Total' as never,
       spend: acc.spend + r.spend,
+      activeSpend: acc.activeSpend + r.activeSpend,
       mqls: acc.mqls + r.mqls,
       sqls: acc.sqls + r.sqls,
       opportunities: acc.opportunities + r.opportunities,
@@ -92,7 +95,7 @@ export default function ChannelTable({ byChannel, activeChannels }: Props) {
       won: acc.won + r.won,
       mrr: acc.mrr + r.mrr,
     }),
-    { channel: 'Total' as never, spend: 0, mqls: 0, sqls: 0, opportunities: 0, meetings: 0, won: 0, mrr: 0 },
+    { channel: 'Total' as never, spend: 0, activeSpend: 0, mqls: 0, sqls: 0, opportunities: 0, meetings: 0, won: 0, mrr: 0 },
   )
 
   function Row({ r, isTotal = false }: { r: ChannelMetrics; isTotal?: boolean }) {
@@ -108,6 +111,7 @@ export default function ChannelTable({ byChannel, activeChannels }: Props) {
           </div>
         </td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(r.spend)}</td>
+        <td className="px-3 py-2.5 text-right text-gray-700">{fmtBRL(r.activeSpend)}</td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtN(r.mqls)}</td>
         <td className="px-3 py-2.5 text-right text-gray-500 text-xs">{ratio(r.spend, r.mqls)}</td>
         <td className="px-3 py-2.5 text-right text-gray-700">{fmtN(r.sqls)}</td>

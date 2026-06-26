@@ -16,6 +16,7 @@ export interface FunnelCounts {
 export interface ChannelMetrics {
   channel: Channel
   spend: number
+  activeSpend: number
   mqls: number
   sqls: number
   opportunities: number
@@ -363,13 +364,20 @@ export function computeMetrics(
   const spendByChannel: Record<Channel, number> = Object.fromEntries(
     CHANNELS.map((c) => [c, 0]),
   ) as Record<Channel, number>
+  const activeSpendByChannel: Record<Channel, number> = Object.fromEntries(
+    CHANNELS.map((c) => [c, 0]),
+  ) as Record<Channel, number>
   const spendByDateChannel: Record<string, Record<Channel, number>> = {}
+  const isActiveCampaign = (s?: string) => s === 'ENABLED' || s === 'ACTIVE'
 
   for (const row of filteredWindsor) {
     if (!row.date) continue
     const ch = normalizeWindsorChannel(row.datasource, row.source)
     const spend = Number(row.spend) || 0
     spendByChannel[ch] += spend
+    if (isActiveCampaign(row.campaign_status)) {
+      activeSpendByChannel[ch] += spend
+    }
     if (!spendByDateChannel[row.date]) {
       spendByDateChannel[row.date] = Object.fromEntries(
         CHANNELS.map((c) => [c, 0]),
@@ -468,6 +476,7 @@ export function computeMetrics(
   const byChannel: ChannelMetrics[] = CHANNELS.map((ch) => ({
     channel: ch,
     spend: spendByChannel[ch],
+    activeSpend: activeSpendByChannel[ch],
     mqls: stageDealsByChannel.mql[ch].size,
     sqls: stageDealsByChannel.sql[ch].size,
     opportunities: stageDealsByChannel.opportunity[ch].size,
