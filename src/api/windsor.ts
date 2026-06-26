@@ -11,6 +11,7 @@ export interface WindsorRow {
   clicks: number
   campaign_status?: string
   status?: string
+  daily_budget?: number | null
   // Quality metrics fields
   frequency?: number | null
   impressions?: number | null
@@ -29,7 +30,7 @@ export interface WindsorRow {
 
 const WINDSOR_FIELDS = [
   'date', 'datasource', 'source', 'campaign', 'adset_name', 'ad_name', 'spend', 'clicks',
-  'campaign_status', 'status',
+  'campaign_status', 'status', 'daily_budget',
   'frequency', 'impressions', 'cpm', 'ctr', 'website_ctr_link_click', 'link_clicks',
   'actions_landing_page_view', 'cost_per_action_type_landing_page_view',
   'video_p25_watched_actions_video_view', 'video_p50_watched_actions_video_view',
@@ -38,7 +39,7 @@ const WINDSOR_FIELDS = [
 ]
 const CACHE_TTL_MINUTES = 30
 // Bump this when WINDSOR_FIELDS changes to auto-invalidate stale cache entries
-const CACHE_VERSION = 'v2'
+const CACHE_VERSION = 'v3'
 
 // In-memory session cache — instant re-access without localStorage parse
 const memCache = new Map<string, WindsorRow[]>()

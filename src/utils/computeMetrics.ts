@@ -364,26 +364,38 @@ export function computeMetrics(
   const spendByChannel: Record<Channel, number> = Object.fromEntries(
     CHANNELS.map((c) => [c, 0]),
   ) as Record<Channel, number>
-  const activeSpendByChannel: Record<Channel, number> = Object.fromEntries(
-    CHANNELS.map((c) => [c, 0]),
-  ) as Record<Channel, number>
   const spendByDateChannel: Record<string, Record<Channel, number>> = {}
   const isActiveCampaign = (s?: string) => s === 'ENABLED' || s === 'ACTIVE'
+
+  // Track latest row per campaign key to resolve daily_budget and active status
+  const latestCampaignRow: Record<string, WindsorRow> = {}
 
   for (const row of filteredWindsor) {
     if (!row.date) continue
     const ch = normalizeWindsorChannel(row.datasource, row.source)
     const spend = Number(row.spend) || 0
     spendByChannel[ch] += spend
-    if (isActiveCampaign(row.campaign_status)) {
-      activeSpendByChannel[ch] += spend
-    }
     if (!spendByDateChannel[row.date]) {
       spendByDateChannel[row.date] = Object.fromEntries(
         CHANNELS.map((c) => [c, 0]),
       ) as Record<Channel, number>
     }
     spendByDateChannel[row.date][ch] += spend
+
+    // Keep the most recent row per campaign for daily_budget lookup
+    const cc = extractCampaignCode(row.campaign ?? '')
+    if (!latestCampaignRow[cc] || row.date > latestCampaignRow[cc].date) {
+      latestCampaignRow[cc] = row
+    }
+  }
+
+  // Average daily spend per channel = total spend / unique days in dataset
+  const activeSpendByChannel: Record<Channel, number> = Object.fromEntries(
+    CHANNELS.map((c) => [c, 0]),
+  ) as Record<Channel, number>
+  const uniqueDays = Object.keys(spendByDateChannel).length || 1
+  for (const ch of CHANNELS) {
+    activeSpendByChannel[ch] = spendByChannel[ch] / uniqueDays
   }
 
   const totalSpend = Object.values(spendByChannel).reduce((a, b) => a + b, 0)

@@ -45,7 +45,7 @@ function sortVal(r: ChannelMetrics, key: SortKey): number {
 const COL_KEYS: { label: string; key: SortKey | null }[] = [
   { label: 'Canal', key: null },
   { label: 'Investimento', key: 'spend' },
-  { label: 'Inv. Ativo', key: 'activeSpend' },
+  { label: 'Média/dia', key: 'activeSpend' },
   { label: 'MQLs', key: 'mqls' },
   { label: 'CPMQL', key: 'cpmql' },
   { label: 'SQLs', key: 'sqls' },
